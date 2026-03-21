@@ -1,7 +1,7 @@
-<svelte:options runes={true} />
 <script lang="ts">
-  import { Badge } from '$lib/components/ui/badge';
-  import { Separator } from '$lib/components/ui/separator';
+  import * as Item from "$lib/components/ui/item/index.js";
+  import { HugeiconsIcon } from "@hugeicons/svelte";
+  import { Tick02Icon, Cancel01Icon, Alert02Icon, CheckmarkBadge01Icon, InformationCircleIcon } from "@hugeicons/core-free-icons";
 
   let { data }: {
     data: {
@@ -13,46 +13,67 @@
   } = $props();
 
   const verdict = $derived(data.go_no_go ?? 'conditional');
-  const verdictVariant = $derived(
-    verdict === 'go' ? 'default' as const :
-    verdict === 'no-go' ? 'destructive' as const :
-    'secondary' as const
+  const verdictIcon = $derived(
+    verdict === 'go' ? Tick02Icon :
+    verdict === 'no-go' ? Cancel01Icon :
+    Alert02Icon
   );
   const verdictLabel = $derived(
-    verdict === 'go' ? '✓ Go' : verdict === 'no-go' ? '✗ No-Go' : '⚠ Conditional'
+    verdict === 'go' ? 'Go' : verdict === 'no-go' ? 'No-Go' : 'Conditional'
+  );
+  const verdictIconClass = $derived(
+    verdict === 'go' ? 'text-green-600' :
+    verdict === 'no-go' ? 'text-red-600' :
+    'text-yellow-600'
+  );
+  const verdictItemClass = $derived(
+    verdict === 'go' ? 'border-green-500/40 bg-green-500/10' :
+    verdict === 'no-go' ? 'border-red-500/40 bg-red-500/10' :
+    'border-yellow-500/40 bg-yellow-500/10'
+  );
+  const verdictTitleClass = $derived(
+    verdict === 'go' ? 'text-green-700' :
+    verdict === 'no-go' ? 'text-red-700' :
+    'text-yellow-700'
   );
 </script>
 
-<div class="flex flex-col gap-3">
-  <Badge variant={verdictVariant} class="self-start text-sm px-3 py-1">{verdictLabel}</Badge>
-
-  {#if data.summary}
-    <p class="text-sm">{data.summary}</p>
-  {/if}
-
-  {#if (data.key_opportunities && data.key_opportunities.length) || (data.key_risks && data.key_risks.length)}
-    <Separator />
-  {/if}
+<div class="flex flex-col gap-2">
+  <Item.Root variant="outline" size="sm" class={verdictItemClass}>
+    <Item.Media>
+      <HugeiconsIcon icon={verdictIcon} class="s-5 {verdictIconClass}" />
+    </Item.Media>
+    <Item.Content>
+      <Item.Title class={verdictTitleClass}>{verdictLabel}</Item.Title>
+      {#if data.summary}
+        <Item.Description>{data.summary}</Item.Description>
+      {/if}
+    </Item.Content>
+  </Item.Root>
 
   {#if data.key_opportunities && data.key_opportunities.length}
-    <div>
-      <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Opportunities</p>
-      <ul class="list-disc pl-4 flex flex-col gap-0.5">
-        {#each data.key_opportunities as o}
-          <li class="text-sm">{o}</li>
-        {/each}
-      </ul>
-    </div>
+    {#each data.key_opportunities as o}
+      <Item.Root variant="default" size="sm">
+        <Item.Media>
+          <HugeiconsIcon icon={CheckmarkBadge01Icon} class="s-5 text-green-600" />
+        </Item.Media>
+        <Item.Content>
+          <Item.Title>{o}</Item.Title>
+        </Item.Content>
+      </Item.Root>
+    {/each}
   {/if}
 
   {#if data.key_risks && data.key_risks.length}
-    <div>
-      <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Risks</p>
-      <ul class="list-disc pl-4 flex flex-col gap-0.5">
-        {#each data.key_risks as r}
-          <li class="text-sm">{r}</li>
-        {/each}
-      </ul>
-    </div>
+    {#each data.key_risks as r}
+      <Item.Root variant="default" size="sm">
+        <Item.Media>
+          <HugeiconsIcon icon={InformationCircleIcon} class="s-5 text-destructive" />
+        </Item.Media>
+        <Item.Content>
+          <Item.Title>{r}</Item.Title>
+        </Item.Content>
+      </Item.Root>
+    {/each}
   {/if}
 </div>

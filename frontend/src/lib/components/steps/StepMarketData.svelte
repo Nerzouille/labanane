@@ -1,8 +1,7 @@
-<svelte:options runes={true} />
 <script lang="ts">
-  import { Alert, AlertDescription } from '$lib/components/ui/alert';
-  import { Separator } from '$lib/components/ui/separator';
-  import { Badge } from '$lib/components/ui/badge';
+  import * as Item from "$lib/components/ui/item/index.js";
+  import { HugeiconsIcon } from "@hugeicons/svelte";
+  import { ChartBarIncreasingIcon, BubbleChatDoneIcon, Alert02Icon, BarChartIcon } from "@hugeicons/core-free-icons";
 
   let { data }: {
     data: {
@@ -14,34 +13,52 @@
   } = $props();
 </script>
 
-<div class="flex flex-col gap-3">
+<div class="flex flex-col gap-2">
   {#if data.sources_unavailable && data.sources_unavailable.length > 0}
-    <Alert class="border-yellow-400 bg-yellow-50 text-yellow-800">
-      <AlertDescription>⚠ Some sources unavailable: {data.sources_unavailable.join(', ')}</AlertDescription>
-    </Alert>
+    <Item.Root variant="outline" size="sm" class="border-yellow-500/40 bg-yellow-500/10">
+      <Item.Media>
+        <HugeiconsIcon icon={Alert02Icon} class="s-5 text-yellow-600" />
+      </Item.Media>
+      <Item.Content>
+        <Item.Title class="text-yellow-700">Some sources unavailable</Item.Title>
+        <Item.Description>{data.sources_unavailable.join(', ')}</Item.Description>
+      </Item.Content>
+    </Item.Root>
   {/if}
 
   {#if data.trend_summary}
-    <div>
-      <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Trends</p>
-      <p class="text-sm">{data.trend_summary}</p>
-    </div>
-  {/if}
-
-  {#if data.trend_summary && data.sentiment_summary}
-    <Separator />
+    <Item.Root variant="default" size="sm">
+      <Item.Media>
+        <HugeiconsIcon icon={ChartBarIncreasingIcon} class="s-5" />
+      </Item.Media>
+      <Item.Content>
+        <Item.Title>Trends</Item.Title>
+        <Item.Description>{data.trend_summary}</Item.Description>
+      </Item.Content>
+    </Item.Root>
   {/if}
 
   {#if data.sentiment_summary}
-    <div>
-      <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Community Sentiment</p>
-      <p class="text-sm">{data.sentiment_summary}</p>
-    </div>
+    <Item.Root variant="default" size="sm">
+      <Item.Media>
+        <HugeiconsIcon icon={BubbleChatDoneIcon} class="s-5" />
+      </Item.Media>
+      <Item.Content>
+        <Item.Title>Community Sentiment</Item.Title>
+        <Item.Description>{data.sentiment_summary}</Item.Description>
+      </Item.Content>
+    </Item.Root>
   {/if}
 
-  <div class="flex flex-wrap gap-1">
-    {#each (data.sources_available ?? []) as src}
-      <Badge variant="outline" class="text-xs">{src}</Badge>
-    {/each}
-  </div>
+  {#if data.sources_available && data.sources_available.length}
+    <Item.Root variant="default" size="sm">
+      <Item.Media>
+        <HugeiconsIcon icon={BarChartIcon} class="s-5" />
+      </Item.Media>
+      <Item.Content>
+        <Item.Title>Sources</Item.Title>
+        <Item.Description>{data.sources_available.join(', ')}</Item.Description>
+      </Item.Content>
+    </Item.Root>
+  {/if}
 </div>

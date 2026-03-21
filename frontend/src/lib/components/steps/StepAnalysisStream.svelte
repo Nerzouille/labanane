@@ -1,8 +1,8 @@
-<svelte:options runes={true} />
 <script lang="ts">
-  import { Badge } from '$lib/components/ui/badge';
+  import * as Item from "$lib/components/ui/item/index.js";
   import { Spinner } from '$lib/components/ui/spinner';
-
+  import { HugeiconsIcon } from "@hugeicons/svelte";
+  import { Tick02Icon } from "@hugeicons/core-free-icons";
   let { data, tokens }: { data: { complete?: boolean; content?: string }; tokens?: string } = $props();
   const content = $derived(data.content ?? tokens ?? '');
   const isComplete = $derived(data.complete ?? false);
@@ -10,17 +10,27 @@
 
 <div class="flex flex-col gap-2">
   {#if !isComplete && content === ''}
-    <div class="flex items-center gap-2 text-muted-foreground text-sm">
-      <Spinner class="w-4 h-4" />
-      <span>Analysing…</span>
-    </div>
+    <Item.Root variant="outline" size="sm">
+      <Item.Media>
+        <Spinner class="s-5" />
+      </Item.Media>
+      <Item.Content>
+        <Item.Title>Analysing…</Item.Title>
+      </Item.Content>
+    </Item.Root>
   {/if}
   {#if content}
-    <div class="bg-muted/30 border rounded-md p-3 {!isComplete ? 'border-primary' : 'border-border'}">
-      <p class="text-sm leading-relaxed whitespace-pre-wrap">{content}</p>
-    </div>
+    <Item.Root variant="outline" size="sm">
+      <Item.Content>
+        <Item.Title>{content}</Item.Title>
+      </Item.Content>
+    </Item.Root>
   {/if}
   {#if isComplete}
-    <Badge variant="secondary" class="self-start">✓ Analysis complete</Badge>
+    <Item.Root variant="outline" size="sm">
+      <Item.Media>
+        <HugeiconsIcon icon={Tick02Icon} class="s-5" />
+      </Item.Media>
+    </Item.Root>
   {/if}
 </div>

@@ -2,6 +2,8 @@
 <script lang="ts">
   import { Button } from '$lib/components/ui/button';
   import { Textarea } from '$lib/components/ui/textarea';
+  import { HugeiconsIcon } from '@hugeicons/svelte';
+  import { ArrowRight01Icon } from '@hugeicons/core-free-icons';
 
   let { data, onAction }: { data: { text?: string }; onAction: (a: object) => void } = $props();
   let description = $state('')
@@ -22,6 +24,9 @@
       placeholder="e.g. ergonomic desk mats for remote workers"
       rows={3}
     />
-    <Button type="submit" disabled={!description.trim()} class="self-start">Continue →</Button>
+    <Button type="submit" disabled={!description.trim()} class="self-end flex items-center gap-1.5">
+      Continue
+      <HugeiconsIcon icon={ArrowRight01Icon} size={16} />
+    </Button>
   </form>
 </div>
