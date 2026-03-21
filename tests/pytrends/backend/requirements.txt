@@ -1,0 +1,4 @@
+fastapi>=0.135.1
+uvicorn[standard]>=0.42.0
+pytrends>=4.9.2
+pydantic-settings>=2.13.1
