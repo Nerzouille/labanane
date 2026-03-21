@@ -1,0 +1,13 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount the source folder so local edits reflect immediately inside the docker container
+      - ./backend/src:/app/src
+    environment:
+      - APP_OPENAI_API_KEY=${APP_OPENAI_API_KEY:-}
+      - APP_CORS_ORIGINS=["*"]
