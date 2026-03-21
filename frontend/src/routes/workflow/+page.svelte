@@ -4,7 +4,6 @@
   import StepRenderer from '$lib/components/StepRenderer.svelte';
   import type { StepState, WsStatus } from '$lib/workflow-types';
   import { Alert, AlertDescription } from '$lib/components/ui/alert';
-  import { Badge } from '$lib/components/ui/badge';
   import { Spinner } from '$lib/components/ui/spinner';
   import ShaderBackground from '$lib/components/ShaderBackground.svelte';
   import { fly } from 'svelte/transition';
@@ -112,100 +111,66 @@
     workflowState = { status: 'idle', description: '', totalSteps: 0, steps: [], activeStepId: '', errorMsg: '', runId: '' };
   }
 
+  const HIDDEN_STEPS = new Set(['product_description', 'ai_analysis']);
+  const visibleSteps = $derived(
+    workflowState.steps.filter((s) => !HIDDEN_STEPS.has(s.step_id))
+  );
+
   $effect(() => () => conn?.close());
 </script>
 
-<ShaderBackground blend={shaderBlend} />
+<main class="max-w-2xl mx-auto py-8 px-4">
+  <header class="flex justify-between items-center mb-6">
+    <h1 class="text-xl font-bold">Guided Analysis</h1>
+    <a href="/" class="text-sm text-primary hover:underline">← Home</a>
+  </header>
 
-<!-- Wrapper thème : bascule light ↔ dark avec transitions CSS -->
-<div class="theme" class:dark={isIdle}>
-
-  <!-- Logo top-left -->
-  <div class="logo-topleft" class:visible={!isIdle}>Shipper</div>
-
-  <!-- Wrapper centré : barre + hero -->
-  <div class="float-wrapper" class:compact={!isIdle}>
-
-    <div class="hero-text" class:hidden={!isIdle}>
-      <h1 class="brand">Shipper</h1>
-      <p class="tagline">Analysez votre marché en temps réel</p>
-    </div>
-
-    <form onsubmit={startWorkflow} class="search-form">
-      <div class="search-bar">
-        <input
-          type="text"
-          bind:value={workflowState.description}
-          placeholder="Décrivez un produit ou entrez un mot-clé…"
-          disabled={!isIdle}
-          autocomplete="off"
-          spellcheck="false"
-        />
-        {#if isIdle}
-          <button type="submit" disabled={!workflowState.description.trim()}>Analyser</button>
-        {:else}
-          <button type="button" class="reset-btn" onclick={reset}>Nouvelle analyse</button>
-        {/if}
-      </div>
+  {#if workflowState.status === 'idle'}
+    <form onsubmit={startWorkflow} class="flex gap-2 mb-4">
+      <Input
+        type="text"
+        bind:value={workflowState.description}
+        placeholder="Describe your product idea…"
+        aria-label="Product description"
+        class="flex-1"
+      />
+      <Button type="submit" disabled={!workflowState.description.trim()}>Start</Button>
     </form>
+  {:else}
+    {#if workflowState.errorMsg}
+      <Alert variant="destructive" class="mb-6">
+        <AlertDescription>{workflowState.errorMsg}</AlertDescription>
+      </Alert>
+    {/if}
 
-    <div class="chips" class:hidden={!isIdle}>
-      {#each ['Vélo électrique', 'Cosmétiques bio', 'Drone FPV'] as chip}
-        <button class="chip" type="button" onclick={() => { workflowState.description = chip; }}>
-          {chip}
-        </button>
+    <div class="flex flex-col gap-8">
+      {#each visibleSteps as step (step.step_id)}
+        {#if step.status === 'processing' && !step.component_type}
+          <div class="flex items-center gap-2 text-sm text-muted-foreground">
+            <Spinner class="w-4 h-4" />
+            <span>{step.label}…</span>
+          </div>
+        {:else if step.component_type && step.status !== 'error'}
+          <StepRenderer
+            componentType={step.component_type}
+            data={step.data ?? {}}
+            tokens={step.tokens}
+            stepId={step.step_id}
+            status={step.status}
+            onAction={handleStepAction}
+          />
+        {:else if step.status === 'error'}
+          <p class="text-destructive text-sm">{step.error}</p>
+        {/if}
       {/each}
     </div>
-  </div>
 
-  <!-- Steps -->
-  {#if !isIdle}
-    <main in:fly={{ y: 28, duration: 600, delay: 700 }}>
-      {#if workflowState.status === 'closed'}
-        <Alert class="mb-4 border-green-500 bg-green-50 text-green-800">
-          <AlertDescription>✓ Analyse terminée</AlertDescription>
-        </Alert>
-      {:else}
-        {#if workflowState.totalSteps > 0}
-          <p class="step-counter">
-            Étape {workflowState.steps.filter(s => s.status === 'complete' || s.status === 'confirmation').length}
-            / {workflowState.totalSteps}
-          </p>
-        {/if}
-        {#if workflowState.errorMsg}
-          <Alert variant="destructive" class="mb-4">
-            <AlertDescription>{workflowState.errorMsg}</AlertDescription>
-          </Alert>
-        {/if}
-      {/if}
-
-      <div class="steps-list">
-        {#each workflowState.steps as step (step.step_id)}
-          <section
-            class="step"
-            class:step-active={step.status === 'active'}
-            class:step-processing={step.status === 'processing'}
-            class:step-error={step.status === 'error'}
-            in:fly={{ y: 10, duration: 300 }}
-          >
-            <div class="step-header">
-              <span class="step-num">{step.step_number}</span>
-              <span class="step-label">{step.label}</span>
-              {#if step.status === 'processing'}<Spinner class="w-4 h-4 text-yellow-400" />{/if}
-              {#if step.status === 'complete'}<Badge variant="secondary" class="text-xs">Done</Badge>{/if}
-            </div>
-            {#if (step.status === 'complete' || step.status === 'confirmation') && step.component_type}
-              <div class="step-body">
-                <StepRenderer componentType={step.component_type} data={step.data ?? {}} tokens={step.tokens} stepId={step.step_id} onAction={handleStepAction} />
-              </div>
-            {/if}
-            {#if step.status === 'error'}
-              <p class="step-error-msg">{step.error}</p>
-            {/if}
-          </section>
-        {/each}
+    {#if workflowState.runId}
+      <div class="mt-8 pt-6 border-t flex items-center justify-between">
+        <p class="text-sm text-muted-foreground">Analysis complete</p>
+        <Button onclick={reset}>Start new analysis</Button>
       </div>
-    </main>
+    {/if}
   {/if}
 
 </div>

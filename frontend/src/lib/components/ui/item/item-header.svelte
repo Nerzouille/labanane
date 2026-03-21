@@ -12,11 +12,8 @@
 
 <div
 	bind:this={ref}
-	data-slot="item-content"
-	class={cn(
-		"gap-1 group-data-[size=xs]/item:gap-0 flex flex-1 flex-col [&+[data-slot=item-content]]:flex-none",
-		className
-	)}
+	data-slot="item-header"
+	class={cn("gap-2 flex basis-full items-center justify-between", className)}
 	{...restProps}
 >
 	{@render children?.()}

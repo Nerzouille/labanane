@@ -11,7 +11,7 @@
     label: string;
     componentType: string;
     stepId: string;
-    data: object;
+    data: Record<string, unknown>;
     tokens?: string;
   };
 
@@ -22,18 +22,6 @@
   };
 
   const groups: ComponentGroup[] = [
-    {
-      title: 'StepDescriptionInput',
-      componentType: 'product_description_input',
-      variants: [
-        {
-          label: 'Default',
-          componentType: 'product_description_input',
-          stepId: 'product_description',
-          data: { text: 'ergonomic desk mats for remote workers' },
-        },
-      ],
-    },
     {
       title: 'StepKeywordList',
       componentType: 'keyword_list',
@@ -94,28 +82,6 @@
       ],
     },
     {
-      title: 'StepAnalysisStream',
-      componentType: 'analysis_stream',
-      variants: [
-        {
-          label: 'Streaming',
-          componentType: 'analysis_stream',
-          stepId: 'ai_analysis',
-          data: { complete: false, content: '' },
-          tokens: 'The ergonomic desk mat market shows moderate competition with strong growth potential…',
-        },
-        {
-          label: 'Complete',
-          componentType: 'analysis_stream',
-          stepId: 'ai_analysis_done',
-          data: {
-            complete: true,
-            content: 'The market shows 42/100 viability. Key differentiators: eco-friendly materials and customizable sizing. Primary risk: high competition from established brands.',
-          },
-        },
-      ],
-    },
-    {
       title: 'StepFinalCriteria',
       componentType: 'final_criteria',
       variants: [
@@ -124,10 +90,19 @@
           componentType: 'final_criteria',
           stepId: 'final_criteria_go',
           data: {
-            summary: 'The product shows solid market potential with identifiable differentiation angles.',
             go_no_go: 'go',
-            key_risks: ['High competition from Amazon brands', 'Price sensitivity in mid-market'],
+            viability_score: 74,
+            summary: 'The product shows solid market potential with identifiable differentiation angles.',
+            analysis: 'The ergonomic desk mat market shows moderate competition with strong growth potential. Eco-friendly materials and customizable sizing represent underserved differentiation angles. Search volume has grown 24% YoY with sustained demand signals.',
+            criteria: [
+              { label: 'Market size', score: 80 },
+              { label: 'Competition', score: 62 },
+              { label: 'Differentiation', score: 78 },
+              { label: 'Margin potential', score: 71 },
+              { label: 'Time to market', score: 65 },
+            ],
             key_opportunities: ['Eco-friendly niche underserved', 'B2B office supply channel', 'Subscription model for replacements'],
+            key_risks: ['High competition from Amazon brands', 'Price sensitivity in mid-market'],
           },
         },
         {
@@ -135,10 +110,19 @@
           componentType: 'final_criteria',
           stepId: 'final_criteria_nogo',
           data: {
-            summary: 'Market is saturated with low-cost alternatives and low differentiation potential.',
             go_no_go: 'no-go',
-            key_risks: ['Margin compression from Asian suppliers', 'Brand recognition barrier', 'High customer acquisition cost'],
+            viability_score: 28,
+            summary: 'Market is saturated with low-cost alternatives and low differentiation potential.',
+            analysis: 'The market is dominated by established brands with entrenched supply chains. Margins are heavily compressed by Asian manufacturers. Customer acquisition costs make unit economics unfeasible at realistic AOVs.',
+            criteria: [
+              { label: 'Market size', score: 55 },
+              { label: 'Competition', score: 18 },
+              { label: 'Differentiation', score: 22 },
+              { label: 'Margin potential', score: 25 },
+              { label: 'Time to market', score: 40 },
+            ],
             key_opportunities: ['Premium segment niche (small TAM)'],
+            key_risks: ['Margin compression from Asian suppliers', 'Brand recognition barrier', 'High customer acquisition cost'],
           },
         },
         {
@@ -146,10 +130,19 @@
           componentType: 'final_criteria',
           stepId: 'final_criteria_cond',
           data: {
-            summary: 'Viable if product differentiates on eco-certification and targets B2B.',
             go_no_go: 'conditional',
-            key_risks: ['Eco-certification cost', 'B2B sales cycle length'],
+            viability_score: 51,
+            summary: 'Viable if product differentiates on eco-certification and targets B2B.',
+            analysis: 'The opportunity exists but requires a focused go-to-market. B2B procurement cycles and sustainability mandates create a defensible wedge, provided the eco-certification cost is absorbed in the first 12 months.',
+            criteria: [
+              { label: 'Market size', score: 60 },
+              { label: 'Competition', score: 45 },
+              { label: 'Differentiation', score: 58 },
+              { label: 'Margin potential', score: 50 },
+              { label: 'Time to market', score: 42 },
+            ],
             key_opportunities: ['Corporate sustainability mandates', 'Government procurement'],
+            key_risks: ['Eco-certification cost', 'B2B sales cycle length'],
           },
         },
       ],
@@ -159,13 +152,20 @@
       componentType: 'report',
       variants: [
         {
-          label: 'Default',
+          label: 'Available',
           componentType: 'report',
           stepId: 'report_generation',
           data: {
             run_id: 'abc123-fake-run-id',
+            markdown_available: true,
+          },
+        },
+        {
+          label: 'Failed',
+          componentType: 'report',
+          stepId: 'report_generation_failed',
+          data: {
             markdown_available: false,
-            note: 'Report stub — export will be available once business logic is implemented.',
           },
         },
       ],
@@ -175,7 +175,7 @@
   let actions = $state<string[]>([]);
   let refreshKeys = $state<Record<string, number>>({});
 
-  function handleAction(title: string, action: object) {
+  function handleAction(title: string, action: Record<string, unknown>) {
     actions = [`[${title}] ${JSON.stringify(action)}`, ...actions.slice(0, 9)];
   }
 

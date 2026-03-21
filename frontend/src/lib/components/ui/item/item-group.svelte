@@ -12,11 +12,9 @@
 
 <div
 	bind:this={ref}
-	data-slot="item-content"
-	class={cn(
-		"gap-1 group-data-[size=xs]/item:gap-0 flex flex-1 flex-col [&+[data-slot=item-content]]:flex-none",
-		className
-	)}
+	role="list"
+	data-slot="item-group"
+	class={cn("gap-4 has-data-[size=sm]:gap-2.5 has-data-[size=xs]:gap-2 group/item-group flex w-full flex-col", className)}
 	{...restProps}
 >
 	{@render children?.()}
