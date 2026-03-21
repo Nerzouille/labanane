@@ -6,17 +6,16 @@
   import StepConfirmation from './steps/StepConfirmation.svelte';
   import StepProductList from './steps/StepProductList.svelte';
   import StepMarketData from './steps/StepMarketData.svelte';
-  import StepAnalysisStream from './steps/StepAnalysisStream.svelte';
   import StepFinalCriteria from './steps/StepFinalCriteria.svelte';
   import StepReport from './steps/StepReport.svelte';
 
-  const COMPONENTS: Record<string, Component> = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const COMPONENTS: Record<string, Component<any>> = {
     product_description_input: StepDescriptionInput,
     keyword_list: StepKeywordList,
     confirmation: StepConfirmation,
     product_list: StepProductList,
     market_data_summary: StepMarketData,
-    analysis_stream: StepAnalysisStream,
     final_criteria: StepFinalCriteria,
     report: StepReport,
   };
