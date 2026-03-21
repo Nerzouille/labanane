@@ -1,8 +1,12 @@
-"""Report / export domain models."""
+"""Shared domain models for workflow steps."""
 
-from datetime import datetime
 from pydantic import BaseModel
-from .sse import MarketplaceProduct
+
+
+class MarketplaceProduct(BaseModel):
+    title: str
+    price: str  # formatted string, e.g. "$14.99" or "N/A"
+    url: str
 
 
 class ViabilityScore(BaseModel):
@@ -27,24 +31,3 @@ class SourceResult(BaseModel):
     status: str  # "success" | "timeout" | "error"
     data: dict | None = None
     error_message: str | None = None
-
-
-class AggregatedData(BaseModel):
-    keyword: str
-    products: list[MarketplaceProduct] = []
-    trend_data: dict | None = None
-    reddit_data: dict | None = None
-    available_sources: list[str] = []
-    unavailable_sources: list[str] = []
-
-
-class AnalysisReport(BaseModel):
-    keyword: str
-    generated_at: datetime
-    products: list[MarketplaceProduct] = []
-    viability: ViabilityScore | None = None
-    persona: TargetPersona | None = None
-    angles: DifferentiationAngles | None = None
-    competitive: CompetitiveOverview | None = None
-    unavailable_sources: list[str] = []
-    is_partial: bool = False

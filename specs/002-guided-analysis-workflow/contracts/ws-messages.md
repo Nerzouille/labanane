@@ -248,3 +248,17 @@ Sent for steps that require user text input (e.g., revised product description a
 2. Malformed JSON: connection is kept open; a `step_error` with `retryable: false` is sent.
 3. Description empty/whitespace: server sends `step_error` on `product_description` step with `retryable: false`; user must send valid `user_input`.
 4. Product research returns zero results: server automatically loops back to `product_description` and sends `step_error` with message "No products found — please refine your description."
+5. **Frontend error display**: When the frontend receives `step_error`, it MUST:
+   - Mark the step as `status: 'error'` in the step list
+   - Display the error string inline on the step card (not a global modal)
+   - If `retryable: true`, show a "Retry" button that sends `{ type: "retry", step_id: ... }` to the server
+   - If `retryable: false`, show the error without a retry option (workflow is terminal at that step unless engine loops back)
+   - Prior confirmed steps remain visible and unaffected
+
+## Session and reconnection policy
+
+- A `WorkflowRun` is created on WebSocket connect and deleted on WebSocket disconnect (`finally` block in endpoint)
+- No TTL, no background cleanup, no persistence — memory is bounded by concurrent active connections
+- **Reconnection is not supported**: if the connection drops mid-workflow, the server-side state is lost. The user must start a new workflow from step 1
+- The frontend MUST detect the `close` event and display: "Connection lost — please start a new analysis"
+- FR-004 (page refresh preserves confirmed data) is out of scope — it requires persistent session storage

@@ -1,17 +1,13 @@
 [project]
-name = "market-intelligence-backend"
+name = "guided-analysis-backend"
 version = "0.1.0"
-description = "Market Intelligence AI — FastAPI backend"
+description = "Guided Analysis Workflow — FastAPI backend"
 requires-python = ">=3.12"
 dependencies = [
-    "beautifulsoup4>=4.14.3",
     "fastapi>=0.135.1",
-    "fpdf2>=2.8.7",
     "httpx>=0.28.1",
     "openhosta>=4.0.3",
-    "praw>=7.8.1",
     "pydantic-settings>=2.13.1",
-    "pytrends>=4.9.2",
     "uvicorn[standard]>=0.42.0",
 ]
 

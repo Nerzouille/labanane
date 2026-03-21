@@ -94,7 +94,7 @@ Produced by Step 4, confirmed at Step 5.
 | `products` | `list[MarketplaceProduct]` | length ≥ 1 (empty triggers loop-back automatically) |
 | `source_keywords` | `list[str]` | The keywords used for this research pass |
 
-*`MarketplaceProduct` reuses the existing model from `backend/src/models/report.py` (feature 001).*
+*`MarketplaceProduct` is defined in `backend/src/models/report.py`.*
 
 ---
 
@@ -123,7 +123,7 @@ Produced by Step 7.
 | `differentiation_angles` | `DifferentiationAngles` | Actionable differentiation |
 | `competitive_overview` | `CompetitiveOverview` | Existing players summary |
 
-*All sub-types reuse existing models from `backend/src/models/report.py` (feature 001).*
+*All sub-types (`ViabilityScore`, `TargetPersona`, `DifferentiationAngles`, `CompetitiveOverview`) are defined in `backend/src/models/report.py`.*
 
 ---
 

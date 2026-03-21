@@ -27,9 +27,9 @@ A 9-step guided analysis workflow with user confirmation loops (keyword refineme
 |-----------|--------|-------|
 | **I — Streaming-First UX** | ✅ PASS (justified deviation) | Constitution specifies SSE; this feature uses WebSocket. Justification: SSE is unidirectional — it cannot receive client confirmation messages (Yes/No at steps 3 and 5). WebSocket maintains the streaming-first spirit (server pushes tokens + progress in real time) while adding the bidirectional channel needed for confirmation loops. No other mechanism meets both requirements. |
 | **II — Pipeline Resilience** | ✅ PASS | All system-processing steps (product research, market research, AI analysis) share the same scoped error+retry pattern. Prior confirmed data is never discarded on step failure. |
-| **III — Stable Export Contracts** | ✅ PASS | Report generated at step 9 uses the same Markdown export schema defined in `contracts/export-schema.md` (feature 001). The `Score: {n}/100` format and section headings are preserved. |
+| **III — Stable Export Contracts** | ✅ PASS | Report generated at step 9 uses the Markdown export schema defined in `contracts/export-schema.md` (feature 002-owned). Section headings and `Score: {n}/100` format are stable. |
 | **IV — Simplicity & Hackathon Scope** | ✅ PASS | No config file, no runtime step editor, no database. Steps are plain Python classes; the pipeline is a list assembled in `registry.py`. |
-| **V — Real Data Integrity** | ✅ PASS | Steps 4–8 reuse the same data collection and analysis stubs from feature 001; no fabricated data. |
+| **V — Real Data Integrity** | ✅ PASS | Steps 4–8 use real data collection and LLM calls; no fabricated data in production. |
 
 **Complexity Tracking**:
 
@@ -122,9 +122,7 @@ backend/
 │   │       ├── s08_final_criteria.py
 │   │       └── s09_report.py
 │   ├── routes/
-│   │   ├── stream.py             # existing SSE route (feature 001)
-│   │   ├── export.py             # existing export route (feature 001)
-│   │   └── workflow.py           # NEW: WebSocket endpoint ws://localhost:8000/ws/workflow
+│   │   └── workflow.py           # WebSocket endpoint ws://localhost:8000/ws/workflow
 │   └── tests/
 │       ├── test_workflow_engine.py
 │       ├── test_workflow_steps.py
@@ -134,8 +132,7 @@ frontend/
 ├── src/
 │   ├── lib/
 │   │   ├── ws.ts                 # WebSocket client + message dispatcher
-│   │   ├── types.ts              # existing SSE types (feature 001)
-│   │   ├── workflow-types.ts     # NEW: WS message Zod schemas
+│   │   ├── workflow-types.ts     # WS message Zod schemas
 │   │   └── components/
 │   │       ├── StepRenderer.svelte       # dynamic mount by component_type
 │   │       └── steps/
@@ -148,15 +145,15 @@ frontend/
 │   │           ├── StepFinalCriteria.svelte
 │   │           └── StepReport.svelte
 │   └── routes/
-│       ├── +page.svelte           # existing analysis dashboard (feature 001)
+│       ├── +page.svelte           # landing page → /workflow
 │       └── workflow/
-│           └── +page.svelte       # NEW: guided workflow page
+│           └── +page.svelte       # guided workflow page
 
 tests/
 └── (backend tests in backend/src/tests/)
 ```
 
-**Structure Decision**: Web application — extends the existing `backend/` + `frontend/` monorepo. The workflow module is a new sibling to the existing pipeline module inside `backend/src/`. The frontend adds a `/workflow` route alongside the existing `/` dashboard.
+**Structure Decision**: Web application — `backend/` + `frontend/` monorepo. The workflow module is the sole feature inside `backend/src/`. The frontend exposes `/workflow` as the primary route.
 
 ## Technology Decisions
 
@@ -166,9 +163,12 @@ tests/
 | Session state | In-memory dict (WorkflowRun keyed by session ID) | No persistence required; hackathon scope |
 | Step interface | Abstract Python base class | Enforces input/output contract; enables registry pattern |
 | Pipeline assembly | List in `registry.py` | Simple, readable, zero config; insert step = insert list item |
-| Frontend routing | New `/workflow` SvelteKit route | Keeps feature 001 dashboard isolated |
 | Component dispatch | `component_type` field in messages | Decouples server step logic from frontend rendering |
-| Message validation | Pydantic (backend) + Zod (frontend) | Shared schema discipline; same pattern as feature 001 |
+| Message validation | Pydantic (backend) + Zod (frontend) | Shared schema discipline across transport boundary |
+| LLM client | OpenHosta (`openhosta>=4.0.3`) wrapping `gpt-4o-mini` | Already in pyproject.toml; fast and cost-effective for hackathon |
+| LLM streaming | OpenHosta async streaming API → yield `step_streaming_token` per chunk | Maintains streaming-first UX during AI Analysis step |
+| LLM config | `APP_OPENAI_API_KEY` via `config.py` `Settings` | Steps access via `from src.config import settings` |
+| LLM usage | Steps 2 (keywords) and 7 (analysis) only; step 8 is deterministic | Steps 4 and 6 use scraping/APIs, not LLM |
 
 ## Phase 0: Research
 
