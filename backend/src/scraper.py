@@ -2,7 +2,11 @@ import os
 import asyncio
 from bs4 import BeautifulSoup
 from pydantic import BaseModel, Field
-from OpenHosta import emulate_async
+from OpenHosta import emulate_async, config as openhosta_config
+from src.config import settings
+
+openhosta_config.DefaultModel.api_key = settings.openai_api_key
+openhosta_config.DefaultModel.model_name = settings.llm_model
 
 MAX_TEXT_LENGTH = 30000
 
@@ -42,6 +46,28 @@ async def parse_marketplace_data(cleaned_text: str) -> list[dict]:
     - rating_count (int)
     - main_features (list of 3 string elements)
     - url (str)
+    """
+    return await emulate_async()
+
+class Criterion(BaseModel):
+    label: str = Field(description="Criterion name, e.g. 'Market size'")
+    score: int = Field(description="Score from 0 to 100")
+
+class MarketAnalysis(BaseModel):
+    viability_score: int = Field(description="Overall market viability score from 0 to 100")
+    go_no_go: str = Field(description="Final decision: exactly one of 'go', 'no-go', or 'conditional'")
+    summary: str = Field(description="One-sentence market verdict")
+    analysis: str = Field(description="2-3 sentence market analysis covering demand, competition and positioning")
+    key_risks: list[str] = Field(description="Top 3 risks as short bullet strings")
+    key_opportunities: list[str] = Field(description="Top 3 opportunities as short bullet strings")
+    criteria: list[Criterion] = Field(description="3 to 5 scoring criteria each with a label and a score 0-100")
+
+async def generate_market_analysis(product_description: str, products: list[dict]) -> dict:
+    """
+    Analyse the market viability for the given product idea using the list of competitor products found on marketplaces.
+    Return a dict with keys: viability_score (int 0-100), go_no_go (str: 'go', 'no-go', or 'conditional'),
+    summary (str), analysis (str), key_risks (list[str]), key_opportunities (list[str]),
+    criteria (list of dicts with 'label' (str) and 'score' (int 0-100) keys).
     """
     return await emulate_async()
 

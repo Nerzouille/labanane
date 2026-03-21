@@ -138,6 +138,17 @@ class WorkflowEngine:
                         break
                 continue  # re-run same step
 
+            except Exception as exc:
+                await ws.send_json(
+                    StepErrorMessage(
+                        step_id=step.step_id,
+                        error=str(exc),
+                        retryable=False,
+                    ).model_dump()
+                )
+                run.status = WorkflowStatus.error
+                return
+
             if loop_back_step_id:
                 run.current_step_index = self._step_index(loop_back_step_id)
             else:

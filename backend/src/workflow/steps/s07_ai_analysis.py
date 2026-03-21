@@ -1,18 +1,12 @@
-"""Step 7 — AI Analysis (system_processing stub with streaming tokens)."""
+"""Step 7 — AI Analysis (OpenHosta market analysis)."""
 from __future__ import annotations
 from typing import TYPE_CHECKING, AsyncGenerator, Any
 from ..step_base import Step
-from ..messages import (
-    StepProcessingMessage,
-    StepStreamingTokenMessage,
-    StepResultMessage,
-    ServerMessage,
-)
+from ..messages import StepProcessingMessage, StepResultMessage, ServerMessage
+from src.scraper import generate_market_analysis, MarketAnalysis
 
 if TYPE_CHECKING:
     from ..run import WorkflowRun, StepOutput
-
-_STUB_TOKENS = ["Stub ", "analysis ", "result. ", "Not ", "yet ", "implemented."]
 
 
 class AiAnalysisStep(Step):
@@ -36,13 +30,15 @@ class AiAnalysisStep(Step):
         self, input: "StepOutput | None", run: "WorkflowRun"
     ) -> AsyncGenerator[ServerMessage, Any]:
         yield StepProcessingMessage(step_id=self.step_id)
-        # TODO: call real LLM analysis
-        for token in _STUB_TOKENS:
-            yield StepStreamingTokenMessage(step_id=self.step_id, token=token)
+
+        product_output = run.confirmed_outputs.get("product_research")
+        products: list[dict] = product_output.data.get("products", []) if product_output else []
+
+        result_dict = await generate_market_analysis(run.description, products)
+        result = MarketAnalysis.model_validate(result_dict)
+
         yield StepResultMessage(
             step_id=self.step_id,
             component_type=self.component_type,
-            data={
-                "analysis": "".join(_STUB_TOKENS),
-            },
+            data=result.model_dump(),
         )

@@ -7,6 +7,7 @@
   import { Input } from '$lib/components/ui/input';
   import { Alert, AlertDescription } from '$lib/components/ui/alert';
   import { Spinner } from '$lib/components/ui/spinner';
+  import StepSkeleton from '$lib/components/steps/StepSkeleton.svelte';
 
   const WS_URL = 'ws://localhost:8000/ws/workflow';
 
@@ -150,11 +151,8 @@
 
     <div class="flex flex-col gap-8">
       {#each visibleSteps as step (step.step_id)}
-        {#if step.status === 'processing' && !step.component_type}
-          <div class="flex items-center gap-2 text-sm text-muted-foreground">
-            <Spinner class="w-4 h-4" />
-            <span>{step.label}…</span>
-          </div>
+        {#if (step.status === 'active' || step.status === 'processing') && !step.component_type}
+          <StepSkeleton stepId={step.step_id} />
         {:else if step.component_type && step.status !== 'error'}
           <StepRenderer
             componentType={step.component_type}
@@ -174,6 +172,10 @@
       <div class="mt-8 pt-6 border-t flex items-center justify-between">
         <p class="text-sm text-muted-foreground">Analysis complete</p>
         <Button onclick={reset}>Start new analysis</Button>
+      </div>
+    {:else if workflowState.errorMsg}
+      <div class="mt-6 flex justify-end">
+        <Button variant="outline" onclick={reset}>Start new analysis</Button>
       </div>
     {/if}
   {/if}
