@@ -7,6 +7,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
+from src.scraper import (
+    fetch_html, 
+    clean_html_for_llm, 
+    parse_marketplace_data, 
+    generate_search_queries
+)
+
 # --- 1. In-Memory Store ---
 MEMORY_STORE: Dict[str, Dict[str, Any]] = {}
 
@@ -48,19 +55,36 @@ async def init_search(request: InitSearchRequest):
         "products_by_source": {}
     }
     
-    # TODO: Call OpenHosta to generate 3 search queries
-    mock_queries = [
-        f"{request.product_description} cheap",
-        f"{request.product_description} reviews",
-        f"buy {request.product_description} online"
-    ]
+    # Call OpenHosta to generate 3 search queries
+    queries = await generate_search_queries(request.product_description)
     
-    MEMORY_STORE[session_id]["search_queries"] = mock_queries
+    MEMORY_STORE[session_id]["search_queries"] = queries
     
     return InitSearchResponse(
         session_id=session_id,
-        search_queries=mock_queries
+        search_queries=queries
     )
+
+async def process_single_source(source: str, queries: List[str]) -> dict:
+    """Processes multiple queries for a single source, keeping only unique products (by URL)."""
+    all_products = []
+    seen_urls = set()
+    
+    for query in queries:
+        raw_html = await fetch_html(source, query)
+        clean_text = clean_html_for_llm(raw_html)
+        
+        # Uses OpenHosta to parse the cleaned marketplace page into structured data
+        products_list = await parse_marketplace_data(clean_text)
+        
+        for p in products_list:
+            key = p.get('url') or p.get('title')
+            # Deduplication
+            if key and key not in seen_urls:
+                seen_urls.add(key)
+                all_products.append(p)
+                
+    return {"source": source, "products": all_products}
 
 @app.post("/api/scrape-stream/{session_id}")
 async def scrape_stream(session_id: str, request: ScrapeStreamRequest):
@@ -68,27 +92,34 @@ async def scrape_stream(session_id: str, request: ScrapeStreamRequest):
         raise HTTPException(status_code=404, detail="Invalid or expired session")
         
     MEMORY_STORE[session_id]["search_queries"] = request.final_queries
+    final_queries = request.final_queries
     
     sources = ["Amazon", "Google Shopping", "Reddit"]
     for source in sources:
         MEMORY_STORE[session_id]["products_by_source"][source] = []
 
     async def event_generator():
-        # TODO: Launch asynchronous scrapers in parallel
-        # Use asyncio.as_completed to yield results as soon as a source finishes
+        # Create coroutines for each source
+        tasks = [
+            asyncio.create_task(process_single_source(source, final_queries))
+            for source in sources
+        ]
         
-        for source in sources:
-            await asyncio.sleep(2) # Mock scraping delay
-            
-            mock_products = [
-                {"title": f"Mock Product 1 from {source}", "price": "19.99", "url": "https://..."},
-                {"title": f"Mock Product 2 from {source}", "price": "29.99", "url": "https://..."}
-            ]
-            
-            MEMORY_STORE[session_id]["products_by_source"][source].extend(mock_products)
-            
-            yield f"event: source_ready\n"
-            yield f"data: {json.dumps({'source': source, 'products': mock_products})}\n\n"
+        # Yield results as soon as each source completes its set of queries
+        for completed_task in asyncio.as_completed(tasks):
+            try:
+                result = await completed_task
+                source_name = result["source"]
+                products = result["products"]
+                
+                MEMORY_STORE[session_id]["products_by_source"][source_name] = products
+                
+                yield f"event: source_ready\n"
+                yield f"data: {json.dumps(result)}\n\n"
+            except Exception as e:
+                # Basic error handling in stream
+                yield f"event: error\n"
+                yield f"data: {json.dumps({'error': str(e)})}\n\n"
             
         yield "event: stream_complete\n"
         yield "data: {}\n\n"
