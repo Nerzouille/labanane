@@ -84,7 +84,15 @@ sources, and the UI explicitly states which source was unavailable.
 - What happens if all three sources are simultaneously unavailable?
   → The pipeline informs the user that no data could be retrieved and does not generate a report with fabricated content.
 - What happens if the user submits a second keyword while an analysis is running?
-  → The MVP should prevent or queue concurrent requests; simultaneous multi-analysis is out of scope.
+  → The input field and submit action are disabled during an active analysis; the user must wait for
+  completion (or page reload) before starting a new one.
+- After a full analysis completes, how does the user start a new analysis?
+  → A "New analysis" button appears on the completed dashboard. Clicking it resets the page to the
+  input state and clears the current results. The user should export before resetting if they want
+  to keep the report.
+- What happens if the LLM fails or is interrupted mid-generation within a section?
+  → The system displays the partial content already streamed for that section plus a visible error notice
+  ("Generation interrupted") on the affected section only. Other completed sections remain intact.
 
 ## Requirements *(mandatory)*
 
@@ -97,6 +105,8 @@ sources, and the UI explicitly states which source was unavailable.
 - **FR-003**: The system MUST validate that the input contains exploitable content before starting the pipeline; empty or whitespace-only inputs MUST be rejected with a user-friendly message.
 - **FR-004**: The system MUST show the user the progress of the ongoing analysis at all times.
 - **FR-005**: The dashboard MUST display a skeleton/placeholder state between pipeline launch and the arrival of the first data section.
+- **FR-033**: The input field and submit action MUST be disabled while an analysis is in progress; the user cannot trigger a concurrent analysis.
+- **FR-034**: Once the full report is complete, a "New analysis" button MUST appear; clicking it resets the application to the input state and clears all current results immediately, with no confirmation prompt.
 
 **Data Collection**
 
@@ -122,6 +132,7 @@ sources, and the UI explicitly states which source was unavailable.
 - **FR-019**: AI-generated content MUST stream incrementally within each section as it is produced (token by token).
 - **FR-020**: Each section MUST appear as soon as it is ready, independently of other sections.
 - **FR-021**: Sections still being generated MUST be visually distinguishable from completed sections.
+- **FR-032**: If the analysis engine fails or is interrupted mid-generation for a section, the system MUST display the partial content already streamed for that section together with a visible error notice ("Generation interrupted") scoped to that section only; completed sections MUST remain intact and unaffected.
 
 **Dashboard Content**
 
@@ -162,6 +173,14 @@ sources, and the UI explicitly states which source was unavailable.
 - **SC-005**: A non-technical user can understand the full market analysis dashboard — including a low viability score — without opening any additional resource.
 - **SC-006**: The Markdown export can be parsed by an automated AI agent without manual adjustment, using stable section headings and score format.
 - **SC-007**: The complete hackathon demonstration (from keyword entry to export) can be conveyed in under 3 minutes.
+
+## Clarifications
+
+### Session 2026-03-21
+
+- Q: If the LLM fails or is interrupted mid-generation within a section, what does the user see? → A: Show partial content already streamed + a visible error notice ("Generation interrupted") scoped to that section; other completed sections remain intact.
+- Q: After a full analysis completes, how does the user start a new analysis? → A: A "New analysis" button appears on the completed dashboard; clicking it resets the page to the input state and clears current results.
+- Q: Should the user receive a warning before resetting if they haven't exported yet? → A: No — reset immediately with no confirmation prompt; the user is responsible for exporting before resetting.
 
 ### Assumptions
 
