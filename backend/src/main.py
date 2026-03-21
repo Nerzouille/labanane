@@ -70,16 +70,25 @@ async def process_single_source(source: str, queries: List[str]) -> dict:
     all_products = []
     seen_urls = set()
     
-    for query in queries:
+    async def fetch_and_parse(query: str):
         raw_html = await fetch_html(source, query)
+        if not raw_html:
+            return []
         clean_text = clean_html_for_llm(raw_html)
-        
-        # Uses OpenHosta to parse the cleaned marketplace page into structured data
-        products_list = await parse_marketplace_data(clean_text)
-        
+        if not clean_text:
+            return []
+        return await parse_marketplace_data(clean_text)
+
+    # Launch all queries for this source in parallel to save time
+    results = await asyncio.gather(*(fetch_and_parse(q) for q in queries), return_exceptions=True)
+    
+    for products_list in results:
+        if isinstance(products_list, Exception):
+            print(f"Error processing a query for {source}: {products_list}")
+            continue
+            
         for p in products_list:
             key = p.get('url') or p.get('title')
-            # Deduplication
             if key and key not in seen_urls:
                 seen_urls.add(key)
                 all_products.append(p)
@@ -94,7 +103,7 @@ async def scrape_stream(session_id: str, request: ScrapeStreamRequest):
     MEMORY_STORE[session_id]["search_queries"] = request.final_queries
     final_queries = request.final_queries
     
-    sources = ["Amazon", "Google Shopping", "Reddit"]
+    sources = ["Amazon", "Aliexpress", "eBay"]
     for source in sources:
         MEMORY_STORE[session_id]["products_by_source"][source] = []
 

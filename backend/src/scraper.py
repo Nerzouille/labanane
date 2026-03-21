@@ -1,10 +1,12 @@
 import os
 import asyncio
+import httpx
 from bs4 import BeautifulSoup
 from pydantic import BaseModel, Field
 from OpenHosta import emulate_async
 
 MAX_TEXT_LENGTH = 30000
+SCRAPERAPI_URL = "http://api.scraperapi.com"
 
 class Product(BaseModel):
     title: str = Field(description="The full name of the product")
@@ -54,21 +56,49 @@ async def generate_search_queries(product_description: str) -> list[str]:
 
 async def fetch_html(source: str, query: str) -> str:
     """
-    Mock fetcher that returns the content of the local page_01.html file.
-    In the future, this will use httpx/requests to fetch from actual sources.
-    #TODO: implement actual fetcher for Amazon, and others
+    Fetch the real HTML from the marketplace using ScraperAPI.
     """
-    # Simulate network delay for fetching
-    await asyncio.sleep(1)
-    
-    file_path = os.path.join(
-        os.path.dirname(__file__), 
-        "tests", "scraper", "openhosta", "page_01.html"
-    )
-    
-    # If file isn't found, return a basic fake page
-    if not os.path.exists(file_path):
-        return f"<html><body><a href='http://mock_{source}'>{query} Mock Item</a> Price: $9.99</body></html>"
+    api_key = os.getenv("SCRAPERAPI_KEY")
+    if not api_key:
+        print("⚠️ Warning: SCRAPERAPI_KEY is missing! Returning empty snippet.")
+        return ""
         
-    with open(file_path, "r", encoding="utf-8") as file:
-        return file.read()
+    encoded_query = query.strip().replace(" ", "+")
+    
+    target_url = ""
+    render_js = "false"
+    
+    if source == "Amazon":
+        target_url = f"https://www.amazon.fr/s?k={encoded_query}&page=1&language=fr_FR"
+    elif source == "Aliexpress":
+        target_url = f"https://www.aliexpress.com/wholesale?SearchText={encoded_query}&page=1&SortType=default"
+        render_js = "true"
+    elif source == "eBay":
+        target_url = f"https://www.ebay.fr/sch/i.html?_nkw={encoded_query}&_pgn=1&_ipg=60"
+    else:
+        return ""
+
+    params = {
+        "api_key": api_key,
+        "url": target_url,
+        "country_code": "fr",
+        "render": render_js
+    }
+
+    async with httpx.AsyncClient(timeout=120.0) as client:
+        try:
+            response = await client.get(SCRAPERAPI_URL, params=params)
+            response.raise_for_status()
+            
+            html = response.text
+            
+            # Anti-bot check
+            if source in ["Aliexpress", "eBay"] and len(html) < 5000:
+                print(f"⚠️ Suspect content ({len(html)} chars) for {source} — probable anti-bot page")
+                return ""
+                
+            return html
+            
+        except httpx.HTTPError as e:
+            print(f"❌ HTTP Error fetching {source}: {str(e)}")
+            return ""
