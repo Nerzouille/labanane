@@ -17,14 +17,20 @@ class Product(BaseModel):
     main_features: list[str] = Field(description="List of exactly 3 main features")
     url: str = Field(description="The absolute URL of the product page")
 
-def clean_html_for_llm(raw_html: str) -> str:
+def clean_html_for_llm(raw_html: str, base_url: str = "") -> str:
     """Removes noise from HTML and injects links so the LLM can extract them."""
     soup = BeautifulSoup(raw_html, "html.parser")
     
     # Inject href values into the text so the LLM can extract them
     for a in soup.find_all('a', href=True):
         if a.text.strip():
-            a.string = f"{a.get_text(strip=True)} [URL: {a['href']}]"
+            href = a['href']
+            # Make URL absolute if a base_url is provided and href is relative
+            if base_url and href.startswith('/'):
+                from urllib.parse import urljoin
+                href = urljoin(base_url, href)
+                
+            a.string = f"{a.get_text(strip=True)} [URL: {href}]"
             
     for noise_tag in soup(["script", "style", "footer", "noscript", "svg"]):
         noise_tag.extract()

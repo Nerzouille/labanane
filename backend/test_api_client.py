@@ -31,7 +31,7 @@ async def test_workflow():
         logger.info("=== 2. Scrape Stream (SSE) ===")
         async with client.stream("POST", f"{BASE_URL}/api/scrape-stream/{session_id}", json={
             "final_queries": queries
-        }) as stream_resp:
+        }, timeout=None) as stream_resp:  # On enlève la limite de temps pour le scrapping
             stream_resp.raise_for_status()
             
             # Lecture du flux Server-Sent Events ligne par ligne
