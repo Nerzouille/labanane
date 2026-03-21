@@ -23,18 +23,6 @@
 
   const groups: ComponentGroup[] = [
     {
-      title: 'StepDescriptionInput',
-      componentType: 'product_description_input',
-      variants: [
-        {
-          label: 'Default',
-          componentType: 'product_description_input',
-          stepId: 'product_description',
-          data: { text: 'ergonomic desk mats for remote workers' },
-        },
-      ],
-    },
-    {
       title: 'StepKeywordList',
       componentType: 'keyword_list',
       variants: [

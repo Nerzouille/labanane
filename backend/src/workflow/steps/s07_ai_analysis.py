@@ -30,7 +30,7 @@ class AiAnalysisStep(Step):
 
     @property
     def component_type(self) -> str:
-        return "analysis_stream"
+        return "final_criteria"
 
     async def execute(
         self, input: "StepOutput | None", run: "WorkflowRun"
@@ -43,9 +43,6 @@ class AiAnalysisStep(Step):
             step_id=self.step_id,
             component_type=self.component_type,
             data={
-                "complete": True,
-                "content": "".join(_STUB_TOKENS),
-                "viability_score": None,
-                "persona": None,
+                "analysis": "".join(_STUB_TOKENS),
             },
         )
