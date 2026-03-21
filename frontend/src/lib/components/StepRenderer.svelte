@@ -9,7 +9,8 @@
   import StepFinalCriteria from './steps/StepFinalCriteria.svelte';
   import StepReport from './steps/StepReport.svelte';
 
-  const COMPONENTS: Record<string, Component> = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const COMPONENTS: Record<string, Component<any>> = {
     product_description_input: StepDescriptionInput,
     keyword_list: StepKeywordList,
     confirmation: StepConfirmation,

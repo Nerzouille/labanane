@@ -11,7 +11,7 @@
     label: string;
     componentType: string;
     stepId: string;
-    data: object;
+    data: Record<string, unknown>;
     tokens?: string;
   };
 
@@ -187,7 +187,7 @@
   let actions = $state<string[]>([]);
   let refreshKeys = $state<Record<string, number>>({});
 
-  function handleAction(title: string, action: object) {
+  function handleAction(title: string, action: Record<string, unknown>) {
     actions = [`[${title}] ${JSON.stringify(action)}`, ...actions.slice(0, 9)];
   }
 
