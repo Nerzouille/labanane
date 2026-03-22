@@ -5,9 +5,6 @@
   import { HugeiconsIcon } from '@hugeicons/svelte';
   import { LinkSquare02Icon, ImageNotFoundIcon } from '@hugeicons/core-free-icons';
   import { fade, blur } from 'svelte/transition';
-  import { tick } from 'svelte';
-  import { Button } from '$lib/components/ui/button';
-  import { Spinner } from '$lib/components/ui/spinner';
 
   function marketplaceLabel(url: string): string {
     try {
@@ -24,25 +21,11 @@
   let { data }: {
     data: {
       products?: Array<{ title: string; price: string; url: string; image_url?: string }>;
-      is_final?: boolean;
     };
   } = $props();
 
   const products = $derived(data.products ?? []);
-  const isFinal = $derived(data.is_final ?? false);
 
-  // Auto-scroll as new products arrive
-  $effect(() => {
-    const pLen = products.length;
-    if (pLen > 0) {
-      tick().then(() => {
-        window.scrollTo({
-          top: document.body.scrollHeight,
-          behavior: 'smooth'
-        });
-      });
-    }
-  });
 </script>
 
 <div class="flex flex-col gap-2">
@@ -84,12 +67,4 @@
     </div>
   {/each}
 
-  {#if !isFinal}
-    <div class="flex justify-center mt-6 py-4" in:fade>
-      <Button disabled class="flex items-center gap-2 bg-muted/50 text-muted-foreground border-slate-200">
-        <Spinner class="size-4" />
-        Searching the web...
-      </Button>
-    </div>
-  {/if}
 </div>

@@ -8,6 +8,7 @@
   import { Spinner } from '$lib/components/ui/spinner';
   import ShaderBackground from '$lib/components/ShaderBackground.svelte';
   import { fly, slide } from 'svelte/transition';
+  import { tick } from 'svelte';
 
   const WS_URL = 'ws://localhost:8000/ws/workflow';
 
@@ -28,18 +29,7 @@
 
   const HIDDEN_STEPS = new Set(['product_description', 'ai_analysis']);
   const visibleSteps = $derived(
-    workflowState.steps.filter((s) => {
-      if (HIDDEN_STEPS.has(s.step_id)) return false;
-      
-      // Fade out the keywords section AND the confirmation button only once the user actually confirms
-      const confirmStep = workflowState.steps.find((x) => x.step_id === 'keyword_confirmation');
-      const isConfirmed = confirmStep?.status === 'complete';
-      
-      if ((s.step_id === 'keyword_refinement' || s.step_id === 'keyword_confirmation') && isConfirmed) {
-        return false;
-      }
-      return true;
-    })
+    workflowState.steps.filter((s) => !HIDDEN_STEPS.has(s.step_id))
   );
 
   // ── Blend : 0 = dark shader, 1 = vague élargie = blanc ──────────────────
@@ -57,6 +47,22 @@
     }
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
+  });
+
+  // Auto-scroll to new content when near the bottom (chat-like behaviour).
+  // Track length, status, data AND tokens so product batches and streaming also trigger scroll.
+  $effect(() => {
+    const _len = visibleSteps.length;
+    const last = visibleSteps.at(-1);
+    const _status = last?.status;
+    const _data = last?.data;
+    const _tokens = last?.tokens;
+    tick().then(() => {
+      const nearBottom = window.innerHeight + window.scrollY >= document.body.scrollHeight - 100;
+      if (nearBottom) {
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+      }
+    });
   });
 
   function findOrCreateStep(step_id: string): StepState {
@@ -137,6 +143,7 @@
           updateStep(msg.step_id, { status: 'error', error: msg.error, data: { retryable: msg.retryable } });
           if (!msg.retryable) workflowState.errorMsg = msg.error;
         } else if (msg.type === 'workflow_complete') {
+          intentionalClose = true;
           workflowState.runId = msg.run_id;
           workflowState.status = 'closed';
         }
@@ -149,7 +156,13 @@
   function handleStepAction(action: object) {
     conn?.send(action);
     const a = action as { type: string; step_id?: string; confirmed?: boolean };
-    if (a.type === 'confirmation' && a.step_id) updateStep(a.step_id, { status: 'complete' });
+    if (a.type === 'confirmation' && a.step_id) {
+      if (a.confirmed === false) {
+        reset();
+      } else {
+        updateStep(a.step_id, { status: 'complete' });
+      }
+    }
   }
 
   function reset() {
@@ -255,6 +268,10 @@
       {:else if workflowState.errorMsg}
         <div class="mt-6 flex justify-end">
           <button class="reset-btn-bottom" onclick={reset}>Nouvelle analyse</button>
+        </div>
+      {:else if workflowState.status === 'open' && visibleSteps.at(-1)?.status === 'complete'}
+        <div class="flex justify-center py-6" in:fly={{ y: 6, duration: 200 }}>
+          <Spinner class="size-5 text-muted-foreground" />
         </div>
       {/if}
 
