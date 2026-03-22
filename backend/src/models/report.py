@@ -43,6 +43,18 @@ class MarketAnalysis(BaseModel):
     competitive_overview: CompetitiveOverview
 
 
+class Persona(BaseModel):
+    name: str                   # archetype label, e.g. "The Weekend Creator"
+    age_range: str              # e.g. "25–35"
+    occupation: str             # e.g. "Freelance graphic designer"
+    motivations: list[str]      # 2–3 items
+    pain_points: list[str]      # 2–3 items
+
+
+class PersonaSet(BaseModel):
+    personas: list[Persona]     # exactly 3
+
+
 class SourceResult(BaseModel):
     source: str
     status: str  # "success" | "timeout" | "error"

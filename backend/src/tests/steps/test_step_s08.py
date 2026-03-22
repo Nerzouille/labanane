@@ -1,106 +1,120 @@
-"""Unit tests for Step 8 — FinalCriteriaStep."""
+"""Unit tests for Step 8 — PersonaGenerationStep."""
 import pytest
-from src.workflow.steps.s08_final_criteria import FinalCriteriaStep
+from unittest.mock import AsyncMock, patch
+
+from src.workflow.steps.s08_persona_generation import PersonaGenerationStep
+from src.workflow.step_base import StepError
+from src.models.report import Persona, PersonaSet
 from src.tests.conftest import make_run, collect_step_messages
 
-SAMPLE_AI_OUTPUT = {
+SAMPLE_KEYWORDS = ["ergonomic desk mat", "office mat"]
+SAMPLE_PRODUCTS = [
+    {"title": "Desk Mat", "price": "EUR 20", "url": "https://amazon.com/dp/B001",
+     "rating_stars": 4.2, "rating_count": 500, "main_features": ["a", "b", "c"]},
+]
+SAMPLE_AI = {
     "viability_score": 74,
     "go_no_go": "conditional",
-    "summary": "Solid niche with moderate competition.",
-    "analysis": "Demand is consistent year-round.",
-    "key_risks": ["High competition", "Price pressure", "Seasonality"],
-    "key_opportunities": ["Eco-friendly angle", "Bundle offers", "B2B market"],
-    "criteria": [{"label": "Market size", "score": 80}],
-    "target_persona": {"description": "Remote workers"},
-    "differentiation_angles": {"content": "Bundle with tray"},
-    "competitive_overview": {"content": "Logitech dominates"},
+    "summary": "Solid niche.",
+    "key_risks": ["Competition", "Price", "Seasonality"],
+    "key_opportunities": ["Eco", "Bundle", "B2B"],
 }
+SAMPLE_PERSONA_SET = PersonaSet(personas=[
+    Persona(name="The Weekend Creator", age_range="25–35",
+            occupation="Freelance designer",
+            motivations=["Professional look", "Aesthetic tools"],
+            pain_points=["Cheap materials", "Wrong sizes"]),
+    Persona(name="The Remote Professional", age_range="30–45",
+            occupation="Software engineer",
+            motivations=["Ergonomic surface", "Minimal design"],
+            pain_points=["Mouse skip", "Cable mess"]),
+    Persona(name="The Student Hustler", age_range="18–24",
+            occupation="University student",
+            motivations=["Gaming aesthetic", "Budget value"],
+            pain_points=["Too expensive", "Too large"]),
+])
 
 
 @pytest.fixture
 def step():
-    return FinalCriteriaStep()
+    return PersonaGenerationStep()
 
 
 @pytest.fixture
-def run_with_ai():
-    return make_run(confirmed_outputs={"ai_analysis": SAMPLE_AI_OUTPUT})
+def run_with_data():
+    return make_run(confirmed_outputs={
+        "keyword_confirmation": {"keywords": SAMPLE_KEYWORDS},
+        "product_research": {"products": SAMPLE_PRODUCTS, "source_keywords": SAMPLE_KEYWORDS},
+        "ai_analysis": SAMPLE_AI,
+    })
 
 
-def test_step_id_is_final_criteria(step):
-    assert step.step_id == "final_criteria"
+def test_step_id_is_persona_generation(step):
+    assert step.step_id == "persona_generation"
 
 
-def test_step_type_is_derivation(step):
-    assert step.step_type == "derivation"
+def test_step_type_is_system_processing(step):
+    assert step.step_type == "system_processing"
 
 
-def test_component_type_is_final_criteria(step):
-    assert step.component_type == "final_criteria"
+def test_component_type_is_persona_generation(step):
+    assert step.component_type == "persona_generation"
+
+
+def test_label_is_persona_generation(step):
+    assert step.label == "Persona Generation"
 
 
 @pytest.mark.asyncio
-async def test_execute_yields_step_result(step, run_with_ai):
-    messages = await collect_step_messages(step, run_with_ai)
-    types = [m["type"] for m in messages]
-    assert "step_result" in types
+async def test_execute_yields_step_processing_first(step, run_with_data):
+    with patch("src.workflow.steps.s08_persona_generation.generate_personas",
+               AsyncMock(return_value=SAMPLE_PERSONA_SET)):
+        messages = await collect_step_messages(step, run_with_data)
+    assert messages[0]["type"] == "step_processing"
 
 
 @pytest.mark.asyncio
-async def test_execute_step_result_has_summary(step, run_with_ai):
-    messages = await collect_step_messages(step, run_with_ai)
+async def test_execute_yields_step_result_with_persona_data(step, run_with_data):
+    with patch("src.workflow.steps.s08_persona_generation.generate_personas",
+               AsyncMock(return_value=SAMPLE_PERSONA_SET)):
+        messages = await collect_step_messages(step, run_with_data)
     sr = next(m for m in messages if m["type"] == "step_result")
-    assert "summary" in sr["data"]
-    assert isinstance(sr["data"]["summary"], str)
+    assert sr["component_type"] == "persona_generation"
 
 
 @pytest.mark.asyncio
-async def test_execute_step_result_has_go_no_go(step, run_with_ai):
-    messages = await collect_step_messages(step, run_with_ai)
+async def test_execute_step_result_data_has_personas_array(step, run_with_data):
+    with patch("src.workflow.steps.s08_persona_generation.generate_personas",
+               AsyncMock(return_value=SAMPLE_PERSONA_SET)):
+        messages = await collect_step_messages(step, run_with_data)
     sr = next(m for m in messages if m["type"] == "step_result")
-    assert "go_no_go" in sr["data"]
-    assert sr["data"]["go_no_go"] in {"go", "no-go", "conditional"}
+    assert "personas" in sr["data"]
+    assert isinstance(sr["data"]["personas"], list)
 
 
 @pytest.mark.asyncio
-async def test_execute_step_result_go_no_go_matches_ai_analysis(step, run_with_ai):
-    messages = await collect_step_messages(step, run_with_ai)
+async def test_execute_step_result_personas_has_3_items(step, run_with_data):
+    with patch("src.workflow.steps.s08_persona_generation.generate_personas",
+               AsyncMock(return_value=SAMPLE_PERSONA_SET)):
+        messages = await collect_step_messages(step, run_with_data)
     sr = next(m for m in messages if m["type"] == "step_result")
-    assert sr["data"]["go_no_go"] == SAMPLE_AI_OUTPUT["go_no_go"]
+    assert len(sr["data"]["personas"]) == 3
 
 
 @pytest.mark.asyncio
-async def test_execute_step_result_has_key_risks(step, run_with_ai):
-    messages = await collect_step_messages(step, run_with_ai)
-    sr = next(m for m in messages if m["type"] == "step_result")
-    assert "key_risks" in sr["data"]
-    assert isinstance(sr["data"]["key_risks"], list)
+async def test_execute_raises_step_error_when_no_products_and_no_ai_analysis(step):
+    run_empty = make_run(confirmed_outputs={})
+    with patch("src.workflow.steps.s08_persona_generation.generate_personas",
+               AsyncMock(return_value=SAMPLE_PERSONA_SET)):
+        with pytest.raises(StepError) as exc_info:
+            await collect_step_messages(step, run_empty)
+    assert exc_info.value.retryable is False
 
 
 @pytest.mark.asyncio
-async def test_execute_step_result_has_key_opportunities(step, run_with_ai):
-    messages = await collect_step_messages(step, run_with_ai)
-    sr = next(m for m in messages if m["type"] == "step_result")
-    assert "key_opportunities" in sr["data"]
-    assert isinstance(sr["data"]["key_opportunities"], list)
-
-
-@pytest.mark.asyncio
-async def test_execute_no_step_processing_for_derivation(step, run_with_ai):
-    messages = await collect_step_messages(step, run_with_ai)
-    assert all(m["type"] != "step_processing" for m in messages)
-
-
-@pytest.mark.asyncio
-async def test_execute_component_type_is_final_criteria(step, run_with_ai):
-    messages = await collect_step_messages(step, run_with_ai)
-    sr = next(m for m in messages if m["type"] == "step_result")
-    assert sr["component_type"] == "final_criteria"
-
-
-@pytest.mark.asyncio
-async def test_execute_no_external_logic_calls(step, run_with_ai):
-    """FinalCriteriaStep is a derivation step — no external calls."""
-    # No mocking needed: if this test passes, no external calls were made
-    messages = await collect_step_messages(step, run_with_ai)
-    assert len(messages) >= 1
+async def test_execute_step_processing_step_id_matches(step, run_with_data):
+    with patch("src.workflow.steps.s08_persona_generation.generate_personas",
+               AsyncMock(return_value=SAMPLE_PERSONA_SET)):
+        messages = await collect_step_messages(step, run_with_data)
+    proc = next(m for m in messages if m["type"] == "step_processing")
+    assert proc["step_id"] == "persona_generation"

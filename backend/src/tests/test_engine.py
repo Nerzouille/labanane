@@ -31,9 +31,6 @@ def _drain(ws, until_type: str, respond_confirmations=True, max_msgs: int = 60) 
 # ── Pipeline integrity ────────────────────────────────────────────────────
 
 
-def test_pipeline_length_is_9():
-    assert len(PIPELINE) == 9
-
 
 def test_pipeline_step_ids_unique():
     ids = [s.step_id for s in PIPELINE]
@@ -49,6 +46,7 @@ def test_pipeline_order():
         "product_validation",
         "market_research",
         "ai_analysis",
+        "persona_generation",
         "final_criteria",
         "report_generation",
     ]
@@ -134,7 +132,7 @@ def test_engine_workflow_complete_includes_run_id(client):
 # ── Engine: step_activated emitted for every step ────────────────────────
 
 
-def test_engine_emits_step_activated_for_all_9_steps(client):
+def test_engine_emits_step_activated_for_all_10_steps(client):
     with client.websocket_connect("/ws/workflow") as ws:
         ws.send_json({"type": "start", "description": "ergonomic desk mats"})
         messages = _drain(ws, "workflow_complete")

@@ -57,6 +57,21 @@ export const AiAnalysisDataSchema = z.object({
   competitive_overview: z.object({ content: z.string() }),
 });
 
+export const PersonaSchema = z.object({
+  name: z.string(),
+  age_range: z.string(),
+  occupation: z.string(),
+  motivations: z.array(z.string()),
+  pain_points: z.array(z.string()),
+});
+
+export const PersonaSetDataSchema = z.object({
+  personas: z.array(PersonaSchema),
+});
+
+export type Persona = z.infer<typeof PersonaSchema>;
+export type PersonaSetData = z.infer<typeof PersonaSetDataSchema>;
+
 export const FinalCriteriaDataSchema = z.object({
   summary: z.string(),
   go_no_go: z.enum(['go', 'no-go', 'conditional']),

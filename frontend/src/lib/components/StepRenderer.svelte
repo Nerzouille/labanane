@@ -8,6 +8,7 @@
   import StepFinalCriteria from './steps/StepFinalCriteria.svelte';
   import StepAiAnalysis from './steps/StepAiAnalysis.svelte';
   import StepReport from './steps/StepReport.svelte';
+  import StepPersona from './steps/StepPersona.svelte';
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const COMPONENTS: Record<string, Component<any>> = {
@@ -19,6 +20,7 @@
     ai_analysis: StepAiAnalysis,
     analysis_stream: StepFinalCriteria,
     final_criteria: StepFinalCriteria,
+    persona_generation: StepPersona,
     report: StepReport,
   };
 
