@@ -143,6 +143,7 @@
           updateStep(msg.step_id, { status: 'error', error: msg.error, data: { retryable: msg.retryable } });
           if (!msg.retryable) workflowState.errorMsg = msg.error;
         } else if (msg.type === 'workflow_complete') {
+          intentionalClose = true;
           workflowState.runId = msg.run_id;
           workflowState.status = 'closed';
         }
