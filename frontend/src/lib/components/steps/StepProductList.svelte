@@ -3,7 +3,7 @@
   import * as Item from '$lib/components/ui/item/index.js';
   import { Badge } from '$lib/components/ui/badge';
   import { HugeiconsIcon } from '@hugeicons/svelte';
-  import { LinkSquare02Icon, ImageNotFoundIcon } from '@hugeicons/core-free-icons';
+  import { LinkSquare02Icon, ImageNotFoundIcon, StarIcon } from '@hugeicons/core-free-icons';
   import { fade, blur } from 'svelte/transition';
   import { tick } from 'svelte';
   import { Button } from '$lib/components/ui/button';
@@ -23,7 +23,7 @@
 
   let { data }: {
     data: {
-      products?: Array<{ title: string; price: string; url: string; image_url?: string }>;
+      products?: Array<{ title: string; price: string; url: string; image_url?: string; rating_stars?: number; rating_count?: number }>;
       is_final?: boolean;
     };
   } = $props();
@@ -108,7 +108,14 @@
 
       <Item.Content>
         <Item.Title class="line-clamp-2 whitespace-normal">{p.title}</Item.Title>
-        <Item.Description class="text-green-700 font-medium">{p.price}</Item.Description>
+        <Item.Description class="text-emerald-700 font-bold">{p.price}</Item.Description>
+        {#if p.rating_stars !== undefined && p.rating_count !== undefined}
+          <div class="flex items-center gap-1 mt-1.5 text-xs text-yellow-600">
+            <HugeiconsIcon icon={StarIcon} size={14} />
+            <span class="font-bold">{p.rating_stars}</span>
+            <span class="text-muted-foreground ml-0.5">({p.rating_count})</span>
+          </div>
+        {/if}
       </Item.Content>
 
       <a
