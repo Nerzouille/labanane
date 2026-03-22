@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     cors_origins: list[str] = ["http://localhost:5173"]
     source_timeout: int = 10  # seconds per data source
 
-    model_config = {"env_file": ".env", "env_prefix": "APP_"}
+    model_config = {"env_file": ".env", "env_prefix": "APP_", "extra": "ignore"}
 
 
 settings = Settings()
