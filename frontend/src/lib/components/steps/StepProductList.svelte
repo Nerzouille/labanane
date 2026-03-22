@@ -31,6 +31,46 @@
   const products = $derived(data.products ?? []);
   const isFinal = $derived(data.is_final ?? false);
 
+  function parsePrice(priceStr: string): number | null {
+    if (!priceStr) return null;
+    const cleaned = priceStr.replace(/\s/g, '').replace(/[^0-9.,]/g, '');
+    if (!cleaned) return null;
+    let numberStr = cleaned;
+    if (numberStr.includes(',') && numberStr.includes('.')) {
+        if (numberStr.indexOf(',') > numberStr.indexOf('.')) {
+            numberStr = numberStr.replace(/\./g, '').replace(',', '.');
+        } else {
+            numberStr = numberStr.replace(/,/g, '');
+        }
+    } else if (numberStr.includes(',')) {
+        numberStr = numberStr.replace(',', '.');
+    }
+    const val = parseFloat(numberStr);
+    return isNaN(val) ? null : val;
+  }
+
+  const priceStats = $derived.by(() => {
+    if (!isFinal || products.length === 0) return null;
+    let min = Infinity, max = -Infinity, sum = 0, count = 0;
+    
+    for (const p of products) {
+      const v = parsePrice(p.price);
+      if (v !== null) {
+        if (v < min) min = v;
+        if (v > max) max = v;
+        sum += v;
+        count++;
+      }
+    }
+
+    if (count === 0) return null;
+    return {
+      avg: (sum / count).toFixed(2),
+      min: min.toFixed(2),
+      max: max.toFixed(2)
+    };
+  });
+
   // Auto-scroll as new products arrive
   $effect(() => {
     const pLen = products.length;
@@ -90,6 +130,21 @@
         <Spinner class="size-4" />
         Searching the web...
       </Button>
+    </div>
+  {:else if priceStats}
+    <div in:fade={{ duration: 600 }} class="mt-6 border-t border-slate-200 pt-5 grid grid-cols-3 gap-3">
+      <div class="flex flex-col items-center justify-center bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
+        <span class="text-[0.65rem] uppercase font-bold text-muted-foreground tracking-wider mb-1">Moyenne</span>
+        <span class="text-lg font-bold text-slate-800">{priceStats.avg} €</span>
+      </div>
+      <div class="flex flex-col items-center justify-center bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
+        <span class="text-[0.65rem] uppercase font-bold text-muted-foreground tracking-wider mb-1">Prix Min</span>
+        <span class="text-lg font-bold text-emerald-600">{priceStats.min} €</span>
+      </div>
+      <div class="flex flex-col items-center justify-center bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
+        <span class="text-[0.65rem] uppercase font-bold text-muted-foreground tracking-wider mb-1">Prix Max</span>
+        <span class="text-lg font-bold text-orange-600">{priceStats.max} €</span>
+      </div>
     </div>
   {/if}
 </div>
