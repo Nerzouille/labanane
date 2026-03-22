@@ -707,7 +707,7 @@ wheels = [
 
 [[package]]
 name = "openhosta"
-version = "4.0.3"
+version = "4.0.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "jinja2" },
@@ -715,9 +715,9 @@ dependencies = [
     { name = "requests" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/82/fa/51a3cadd18bfac19f6941961e0b935512437c9222476fe339b2c91c19fe2/openhosta-4.0.3.tar.gz", hash = "sha256:f91913df21cb6a5ebdc8b7525f7488ffaa1308668f62c2d9365aeb17a82aecb9", size = 76420, upload-time = "2026-03-21T13:11:49.753Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/63/1c/d0d58ee84916257250f01428af1c1be25d7029543b965a58fa32772e3181/openhosta-4.0.4.tar.gz", hash = "sha256:5dfe2d813d8e4d01ebca1e5eee2f7171a2d80cbce78911c231965a49248012ce", size = 77935, upload-time = "2026-03-21T22:17:38.072Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/7f/d9/fc1723e9a30288dc3fc3ac6d77ed7b43e906e52e6bbef4e8561ab8f91c9d/openhosta-4.0.3-py3-none-any.whl", hash = "sha256:204f6c4d40bbb3ae9452110df2a712df502a531b2702a62f56e2d3b1fee4406c", size = 95274, upload-time = "2026-03-21T13:11:48.827Z" },
+    { url = "https://files.pythonhosted.org/packages/7a/ad/dc511be0a2218099404879fe1524eb386b065185f7ce1c6c04659292ee2f/openhosta-4.0.4-py3-none-any.whl", hash = "sha256:af31bdf96312c0165dce120b78aa6f40b25de09df998aa4cc5de5a49a3a1d63b", size = 96725, upload-time = "2026-03-21T22:17:36.931Z" },
 ]
 
 [[package]]
