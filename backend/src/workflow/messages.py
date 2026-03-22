@@ -29,12 +29,6 @@ class StepProcessingMessage(BaseModel):
     step_id: str
 
 
-class StepStreamingTokenMessage(BaseModel):
-    type: Literal["step_streaming_token"] = "step_streaming_token"
-    step_id: str
-    token: str
-
-
 class StepResultMessage(BaseModel):
     type: Literal["step_result"] = "step_result"
     step_id: str
@@ -65,7 +59,6 @@ ServerMessage = (
     WorkflowStartedMessage
     | StepActivatedMessage
     | StepProcessingMessage
-    | StepStreamingTokenMessage
     | StepResultMessage
     | ConfirmationRequestMessage
     | StepErrorMessage

@@ -1,9 +1,10 @@
 """Step 7 — AI Analysis (OpenHosta market analysis)."""
 from __future__ import annotations
 from typing import TYPE_CHECKING, AsyncGenerator, Any
-from ..step_base import Step
+from ..step_base import Step, StepError
 from ..messages import StepProcessingMessage, StepResultMessage, ServerMessage
-from src.scraper import generate_market_analysis, MarketAnalysis
+from src.logic.analysis import generate_market_analysis
+from src.models.report import MarketAnalysis
 
 if TYPE_CHECKING:
     from ..run import WorkflowRun, StepOutput
@@ -24,18 +25,24 @@ class AiAnalysisStep(Step):
 
     @property
     def component_type(self) -> str:
-        return "final_criteria"
+        return "ai_analysis"
 
     async def execute(
         self, input: "StepOutput | None", run: "WorkflowRun"
     ) -> AsyncGenerator[ServerMessage, Any]:
         yield StepProcessingMessage(step_id=self.step_id)
 
-        product_output = run.confirmed_outputs.get("product_research")
-        products: list[dict] = product_output.data.get("products", []) if product_output else []
+        products: list[dict] = run.get_output("product_research").get("products", [])
+        trends: dict = run.get_output("market_research").get("trends", {})
 
-        result_dict = await generate_market_analysis(run.description, products)
-        result = MarketAnalysis.model_validate(result_dict)
+        if not products and not trends:
+            raise StepError(
+                "Cannot generate analysis: no product data and no trend data available. "
+                "Please refine your search and try again.",
+                retryable=False,
+            )
+
+        result = await generate_market_analysis(run.description, products, trends)
 
         yield StepResultMessage(
             step_id=self.step_id,

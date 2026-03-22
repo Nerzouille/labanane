@@ -1,0 +1,176 @@
+"""Business logic — Markdown and PDF report rendering.
+
+Pure functions only. No workflow state, no WebSocket access.
+"""
+from __future__ import annotations
+from datetime import date
+
+
+def render_markdown(run_data: dict) -> str:
+    """Render a Markdown report from workflow run data.
+
+    run_data keys expected:
+      run_id, description, keywords, products, trends, ai_analysis
+    """
+    run_id = run_data.get("run_id", "unknown")
+    description = run_data.get("description", "")
+    today = date.today().isoformat()
+
+    ai = run_data.get("ai_analysis", {})
+    go_no_go = ai.get("go_no_go", "conditional")
+    viability_score = ai.get("viability_score", 0)
+    summary = ai.get("summary", "")
+    analysis = ai.get("analysis", "")
+    key_risks = ai.get("key_risks", [])
+    key_opportunities = ai.get("key_opportunities", [])
+    criteria = ai.get("criteria", [])
+    target_persona = ai.get("target_persona", {})
+    differentiation_angles = ai.get("differentiation_angles", {})
+    competitive_overview = ai.get("competitive_overview", {})
+
+    keywords: list[str] = run_data.get("keywords", [])
+    products: list[dict] = run_data.get("products", [])
+    trends: dict = run_data.get("trends", {})
+
+    lines: list[str] = []
+
+    # Header
+    lines.append(f"# Market Analysis: {description}")
+    lines.append("")
+    lines.append(f"**Date**: {today}")
+    lines.append(f"**Run ID**: {run_id}")
+    lines.append(f"**Verdict**: {go_no_go}")
+    lines.append("")
+    lines.append("---")
+    lines.append("")
+
+    # Keywords
+    lines.append("## Keywords Used")
+    lines.append("")
+    for kw in keywords:
+        lines.append(f"- {kw}")
+    lines.append("")
+    lines.append("---")
+    lines.append("")
+
+    # Products
+    lines.append("## Marketplace Products")
+    lines.append("")
+    lines.append("| Product | Price | Rating | Reviews |")
+    lines.append("|---------|-------|--------|---------|")
+    for p in products:
+        title = p.get("title", "")
+        price = p.get("price", "N/A")
+        stars = p.get("rating_stars", 0)
+        count = p.get("rating_count", 0)
+        lines.append(f"| {title} | {price} | {stars}/5 | {count} |")
+    lines.append("")
+    lines.append("---")
+    lines.append("")
+
+    # Trends
+    lines.append("## Market Trends (Google Trends)")
+    lines.append("")
+    lines.append("*(Trend data is descriptive text — charts are browser-only)*")
+    lines.append("")
+    for kw, kw_trends in trends.items():
+        iot = kw_trends.get("interest_over_time", [])
+        ibr = kw_trends.get("interest_by_region", [])
+        peak_month = ""
+        if iot:
+            peak = max(iot, key=lambda p: p.get("value", 0))
+            peak_month = peak.get("date", "")[:7]  # YYYY-MM
+        top_country = ibr[0].get("geo", "") if ibr else ""
+        country_str = f", strongest in {top_country}" if top_country else ""
+        peak_str = f"Peak interest in {peak_month}" if peak_month else "No peak data"
+        lines.append(f"- **{kw}**: {peak_str}{country_str}.")
+    lines.append("")
+    lines.append("---")
+    lines.append("")
+
+    # Viability Score
+    lines.append("## Viability Score")
+    lines.append("")
+    lines.append(f"Score: {viability_score}/100")
+    lines.append("")
+    if analysis:
+        lines.append(analysis)
+        lines.append("")
+    lines.append("---")
+    lines.append("")
+
+    # Go/No-Go
+    lines.append(f"## Go / No-Go: {go_no_go}")
+    lines.append("")
+    if summary:
+        lines.append(summary)
+        lines.append("")
+    lines.append("---")
+    lines.append("")
+
+    # Target Persona
+    lines.append("## Target Persona")
+    lines.append("")
+    lines.append(target_persona.get("description", ""))
+    lines.append("")
+    lines.append("---")
+    lines.append("")
+
+    # Differentiation Angles
+    lines.append("## Differentiation Angles")
+    lines.append("")
+    lines.append(differentiation_angles.get("content", ""))
+    lines.append("")
+    lines.append("---")
+    lines.append("")
+
+    # Competitive Overview
+    lines.append("## Competitive Overview")
+    lines.append("")
+    lines.append(competitive_overview.get("content", ""))
+    lines.append("")
+    lines.append("---")
+    lines.append("")
+
+    # Key Risks
+    lines.append("## Key Risks")
+    lines.append("")
+    for risk in key_risks:
+        lines.append(f"- {risk}")
+    lines.append("")
+    lines.append("---")
+    lines.append("")
+
+    # Key Opportunities
+    lines.append("## Key Opportunities")
+    lines.append("")
+    for opp in key_opportunities:
+        lines.append(f"- {opp}")
+    lines.append("")
+    lines.append("---")
+    lines.append("")
+
+    # Scoring Criteria
+    lines.append("## Scoring Criteria")
+    lines.append("")
+    lines.append("| Criterion | Score |")
+    lines.append("|-----------|-------|")
+    for c in criteria:
+        label = c.get("label", "")
+        score = c.get("score", 0)
+        lines.append(f"| {label} | {score}/100 |")
+
+    return "\n".join(lines)
+
+
+def render_pdf(markdown_str: str) -> bytes:
+    """Convert Markdown → HTML → PDF via weasyprint."""
+    import markdown as md_lib
+    from weasyprint import HTML
+
+    note = (
+        "<p><em>Charts available in the interactive browser view.</em></p><hr/>"
+    )
+    html_body = md_lib.markdown(markdown_str, extensions=["tables"])
+    full_html = f"<!DOCTYPE html><html><body>{note}{html_body}</body></html>"
+    return HTML(string=full_html).write_pdf()

@@ -1,4 +1,4 @@
-"""Step 8 — Final Criteria (forwards AI analysis output)."""
+"""Step 8 — Final Criteria (extracts verdict subset from AI analysis)."""
 from __future__ import annotations
 from typing import TYPE_CHECKING, AsyncGenerator, Any
 from ..step_base import Step
@@ -28,15 +28,14 @@ class FinalCriteriaStep(Step):
     async def execute(
         self, input: "StepOutput | None", run: "WorkflowRun"
     ) -> AsyncGenerator[ServerMessage, Any]:
-        ai_output = run.confirmed_outputs.get("ai_analysis")
-        data = ai_output.data if ai_output else {
-            "summary": "No analysis available.",
-            "go_no_go": "conditional",
-            "key_risks": [],
-            "key_opportunities": [],
-        }
+        ai = run.get_output("ai_analysis")
         yield StepResultMessage(
             step_id=self.step_id,
             component_type=self.component_type,
-            data=data,
+            data={
+                "summary": ai.get("summary", "No analysis available."),
+                "go_no_go": ai.get("go_no_go", "conditional"),
+                "key_risks": ai.get("key_risks", []),
+                "key_opportunities": ai.get("key_opportunities", []),
+            },
         )

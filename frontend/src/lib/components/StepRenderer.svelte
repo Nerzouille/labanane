@@ -6,6 +6,7 @@
   import StepProductList from './steps/StepProductList.svelte';
   import StepMarketData from './steps/StepMarketData.svelte';
   import StepFinalCriteria from './steps/StepFinalCriteria.svelte';
+  import StepAiAnalysis from './steps/StepAiAnalysis.svelte';
   import StepReport from './steps/StepReport.svelte';
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -14,6 +15,8 @@
     confirmation: StepConfirmation,
     product_list: StepProductList,
     market_data_summary: StepMarketData,
+    market_data: StepMarketData,
+    ai_analysis: StepAiAnalysis,
     analysis_stream: StepFinalCriteria,
     final_criteria: StepFinalCriteria,
     report: StepReport,

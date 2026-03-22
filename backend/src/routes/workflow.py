@@ -12,6 +12,7 @@ from src.workflow.engine import WorkflowEngine
 from src.workflow.registry import PIPELINE
 from src.workflow.run import WorkflowRun
 from src.workflow.messages import StepErrorMessage
+# _reports is intentionally NOT cleared on disconnect (user downloads after close)
 
 router = APIRouter()
 

@@ -5,8 +5,82 @@ export const ProductSchema = z.object({
   title: z.string(),
   price: z.string(),
   url: z.string(),
+  rating_stars: z.number(),
+  rating_range: z.number(),
+  rating_count: z.number(),
+  main_features: z.array(z.string()),
 });
 export type Product = z.infer<typeof ProductSchema>;
+
+// ── Step data schemas (component_type → data shape) ─────────────────────────
+
+export const KeywordListDataSchema = z.object({
+  keywords: z.array(z.string()),
+});
+
+export const ProductListDataSchema = z.object({
+  products: z.array(ProductSchema),
+  source_keywords: z.array(z.string()),
+});
+
+export const TimePointSchema = z.object({ date: z.string(), value: z.number() });
+export const RegionPointSchema = z.object({ geo: z.string(), name: z.string(), value: z.number() });
+export const QueryPointSchema = z.object({ query: z.string(), value: z.number() });
+export const RisingPointSchema = z.object({ query: z.string(), value: z.string() });
+
+export const KeywordTrendsSchema = z.object({
+  interest_over_time: z.array(TimePointSchema),
+  interest_by_region: z.array(RegionPointSchema),
+  related_queries_top: z.array(QueryPointSchema),
+  related_queries_rising: z.array(RisingPointSchema),
+});
+
+export const MarketDataResultSchema = z.object({
+  keywords: z.array(z.string()),
+  sources_available: z.array(z.string()),
+  sources_unavailable: z.array(z.string()),
+  trends: z.record(KeywordTrendsSchema),
+});
+
+export const CriterionSchema = z.object({ label: z.string(), score: z.number() });
+
+export const AiAnalysisDataSchema = z.object({
+  viability_score: z.number(),
+  go_no_go: z.enum(['go', 'no-go', 'conditional']),
+  summary: z.string(),
+  analysis: z.string(),
+  key_risks: z.array(z.string()),
+  key_opportunities: z.array(z.string()),
+  criteria: z.array(CriterionSchema),
+  target_persona: z.object({ description: z.string() }),
+  differentiation_angles: z.object({ content: z.string() }),
+  competitive_overview: z.object({ content: z.string() }),
+});
+
+export const FinalCriteriaDataSchema = z.object({
+  summary: z.string(),
+  go_no_go: z.enum(['go', 'no-go', 'conditional']),
+  key_risks: z.array(z.string()),
+  key_opportunities: z.array(z.string()),
+});
+
+export const ReportDataSchema = z.object({
+  run_id: z.string(),
+  markdown_available: z.boolean(),
+});
+
+export type KeywordListData = z.infer<typeof KeywordListDataSchema>;
+export type ProductListData = z.infer<typeof ProductListDataSchema>;
+export type TimePoint = z.infer<typeof TimePointSchema>;
+export type RegionPoint = z.infer<typeof RegionPointSchema>;
+export type QueryPoint = z.infer<typeof QueryPointSchema>;
+export type RisingPoint = z.infer<typeof RisingPointSchema>;
+export type KeywordTrends = z.infer<typeof KeywordTrendsSchema>;
+export type MarketDataResult = z.infer<typeof MarketDataResultSchema>;
+export type Criterion = z.infer<typeof CriterionSchema>;
+export type AiAnalysisData = z.infer<typeof AiAnalysisDataSchema>;
+export type FinalCriteriaData = z.infer<typeof FinalCriteriaDataSchema>;
+export type ReportData = z.infer<typeof ReportDataSchema>;
 
 // ── Server → Client message schemas ────────────────────────────────────────
 
@@ -27,12 +101,6 @@ export const StepActivatedSchema = z.object({
 export const StepProcessingSchema = z.object({
   type: z.literal('step_processing'),
   step_id: z.string(),
-});
-
-export const StepStreamingTokenSchema = z.object({
-  type: z.literal('step_streaming_token'),
-  step_id: z.string(),
-  token: z.string(),
 });
 
 export const StepResultSchema = z.object({
@@ -65,7 +133,6 @@ export const ServerMessageSchema = z.discriminatedUnion('type', [
   WorkflowStartedSchema,
   StepActivatedSchema,
   StepProcessingSchema,
-  StepStreamingTokenSchema,
   StepResultSchema,
   ConfirmationRequestSchema,
   StepErrorSchema,
@@ -75,7 +142,6 @@ export const ServerMessageSchema = z.discriminatedUnion('type', [
 export type WorkflowStarted = z.infer<typeof WorkflowStartedSchema>;
 export type StepActivated = z.infer<typeof StepActivatedSchema>;
 export type StepProcessing = z.infer<typeof StepProcessingSchema>;
-export type StepStreamingToken = z.infer<typeof StepStreamingTokenSchema>;
 export type StepResult = z.infer<typeof StepResultSchema>;
 export type ConfirmationRequest = z.infer<typeof ConfirmationRequestSchema>;
 export type StepError = z.infer<typeof StepErrorSchema>;
@@ -95,5 +161,4 @@ export interface StepState {
   component_type?: string;
   data?: Record<string, unknown>;
   error?: string;
-  tokens?: string; // accumulated streaming tokens
 }

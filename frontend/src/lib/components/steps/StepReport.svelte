@@ -11,11 +11,11 @@
   {#if data.markdown_available}
     <div class="flex flex-col items-center gap-3">
       <div class="flex items-center gap-3">
-        <Button variant="outline" href="/api/export/pdf?run_id={data.run_id}" class="flex items-center gap-1.5">
+        <Button variant="outline" href="http://localhost:8000/api/export/{data.run_id}/pdf" target="_blank" rel="noopener" class="flex items-center gap-1.5">
           <HugeiconsIcon icon={Pdf01Icon} size={16} />
           Export PDF
         </Button>
-        <Button href="/api/export/md?run_id={data.run_id}" class="flex items-center gap-1.5">
+        <Button href="http://localhost:8000/api/export/{data.run_id}/markdown" target="_blank" rel="noopener" class="flex items-center gap-1.5">
           <HugeiconsIcon icon={FileEditIcon} size={16} />
           Export Markdown
         </Button>

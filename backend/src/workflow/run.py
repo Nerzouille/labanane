@@ -30,3 +30,12 @@ class WorkflowRun:
     current_step_index: int = 0
     confirmed_outputs: dict[str, StepOutput] = field(default_factory=dict)
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+
+    def get_output(self, step_id: str) -> dict:
+        """Return the confirmed data dict for step_id, or {} if not found.
+
+        This is the sole sanctioned way for steps to read prior confirmed outputs.
+        Do NOT access confirmed_outputs directly from step code.
+        """
+        out = self.confirmed_outputs.get(step_id)
+        return out.data if out else {}

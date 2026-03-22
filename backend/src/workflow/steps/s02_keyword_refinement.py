@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, AsyncGenerator, Any
 from ..step_base import Step
 from ..messages import StepProcessingMessage, StepResultMessage, ServerMessage
-from src.scraper import generate_search_queries
+from src.logic.analysis import generate_search_queries
 
 if TYPE_CHECKING:
     from ..run import WorkflowRun, StepOutput

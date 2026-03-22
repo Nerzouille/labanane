@@ -3,13 +3,13 @@ from __future__ import annotations
 import asyncio
 from typing import TYPE_CHECKING, AsyncGenerator, Any
 from ..step_base import Step
-from ..messages import StepProcessingMessage, StepResultMessage, ServerMessage
-from src.scraper import fetch_html, clean_html_for_llm, parse_marketplace_data
+from ..messages import StepProcessingMessage, StepResultMessage, StepErrorMessage, ServerMessage
+from src.logic.scraper import fetch_html, clean_html_for_llm, parse_marketplace_data
 
 if TYPE_CHECKING:
     from ..run import WorkflowRun, StepOutput
 
-SOURCES = ["Amazon", "Google Shopping", "Reddit"]
+SOURCES = ["Amazon", "Google Shopping"]
 
 
 async def _scrape_source(source: str, keywords: list[str]) -> list[dict]:
@@ -50,7 +50,11 @@ class ProductResearchStep(Step):
     ) -> AsyncGenerator[ServerMessage, Any]:
         yield StepProcessingMessage(step_id=self.step_id)
 
-        keywords: list[str] = input.data.get("keywords", []) if input else []
+        keywords: list[str] = run.get_output("keyword_refinement").get("keywords", [])
+        if not keywords and input:
+            keywords = input.data.get("keywords", [])
+
+        source_keywords = keywords
 
         results = await asyncio.gather(
             *[_scrape_source(source, keywords) for source in SOURCES],
@@ -62,8 +66,16 @@ class ProductResearchStep(Step):
             if isinstance(r, list):
                 all_products.extend(r)
 
+        if not all_products:
+            yield StepErrorMessage(
+                step_id=self.step_id,
+                error="No products found — please refine your description.",
+                retryable=False,
+            )
+            return
+
         yield StepResultMessage(
             step_id=self.step_id,
             component_type=self.component_type,
-            data={"products": all_products},
+            data={"products": all_products, "source_keywords": source_keywords},
         )

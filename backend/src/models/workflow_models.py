@@ -4,8 +4,7 @@ from typing import Literal
 from pydantic import BaseModel
 
 from .report import (
-    MarketplaceProduct,
-    ViabilityScore,
+    Product as MarketplaceProduct,  # backwards-compat alias
     TargetPersona,
     DifferentiationAngles,
     CompetitiveOverview,
@@ -31,7 +30,6 @@ class MarketData(BaseModel):
 
 
 class AnalysisResult(BaseModel):
-    viability_score: ViabilityScore | None = None
     target_persona: TargetPersona | None = None
     differentiation_angles: DifferentiationAngles | None = None
     competitive_overview: CompetitiveOverview | None = None
