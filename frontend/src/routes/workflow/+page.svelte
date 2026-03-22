@@ -7,6 +7,8 @@
   import { Alert, AlertDescription } from '$lib/components/ui/alert';
   import { Spinner } from '$lib/components/ui/spinner';
   import ShaderBackground from '$lib/components/ShaderBackground.svelte';
+  import { HugeiconsIcon } from '@hugeicons/svelte';
+  import { ArrowRightIcon } from '@hugeicons/core-free-icons';
   import { fly, slide } from 'svelte/transition';
 
   const WS_URL = 'ws://localhost:8000/ws/workflow';
@@ -189,7 +191,10 @@
           spellcheck="false"
         />
         {#if isIdle}
-          <button type="submit" disabled={!workflowState.description.trim()}>Analyser</button>
+          <button type="submit" disabled={!workflowState.description.trim()}>
+            <span class="btn-label">Analyser</span>
+            <span class="btn-icon"><HugeiconsIcon icon={ArrowRightIcon} size={18} color="currentColor" /></span>
+          </button>
         {:else}
           <button type="button" class="reset-btn" onclick={reset}>Nouvelle analyse</button>
         {/if}
@@ -293,6 +298,7 @@
   .logo-topleft.visible { opacity: 1; pointer-events: auto; }
   .dark .logo-topleft { color: #fff; }
 
+
   /* ── Float wrapper ── */
   .float-wrapper {
     position: fixed;
@@ -393,7 +399,11 @@
     white-space: nowrap;
     flex-shrink: 0;
     transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
+  .btn-icon { display: none; align-items: center; justify-content: center; }
   button[type='submit']:disabled { opacity: 0.4; cursor: not-allowed; }
   button[type='submit']:not(:disabled):hover { background: #2563eb; }
   .dark button[type='submit'] { background: #7c3aed; }
@@ -422,10 +432,11 @@
     flex-wrap: wrap;
     justify-content: center;
     overflow: hidden;
-    max-height: 4rem;
+    max-height: 8rem;
     opacity: 1;
     transition: max-height 0.7s ease, opacity 0.35s ease, margin 0.7s ease;
     margin-top: 0;
+    padding: 0 0.25rem;
   }
   .chips.hidden { max-height: 0; opacity: 0; }
 
@@ -492,4 +503,13 @@
     transition: background 0.2s;
   }
   .reset-btn-bottom:hover { background: #2563eb; }
+
+  /* ── Mobile overrides (en dernier pour l'emporter sur les règles de base) ── */
+  @media (max-width: 640px) {
+    .logo-topleft { display: none; }
+    .btn-label { display: none; }
+    .btn-icon { display: flex; }
+    button[type='submit'] { padding: 0.65rem 0.75rem; }
+    input { font-size: 0.85rem; }
+  }
 </style>
