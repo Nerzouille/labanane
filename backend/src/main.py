@@ -14,8 +14,9 @@ from src.scraper import (
     generate_search_queries
 )
 
-# --- 1. In-Memory Store ---
+# --- 1. In-Memory Store & Global Limits ---
 MEMORY_STORE: Dict[str, Dict[str, Any]] = {}
+CONCURRENCY_LIMITER = asyncio.Semaphore(2)  # Limit to 2 concurrent API calls total
 
 app = FastAPI(title="Market Intelligence In-Memory API")
 
@@ -70,16 +71,45 @@ async def process_single_source(source: str, queries: List[str]) -> dict:
     all_products = []
     seen_urls = set()
     
-    for query in queries:
-        raw_html = await fetch_html(source, query)
-        clean_text = clean_html_for_llm(raw_html)
-        
-        # Uses OpenHosta to parse the cleaned marketplace page into structured data
-        products_list = await parse_marketplace_data(clean_text)
-        
+    # Define base URLs for absolute link reconstruction
+    BASE_URLS = {
+        "Amazon": "https://www.amazon.fr",
+        "Aliexpress": "https://www.aliexpress.com",
+        "eBay": "https://www.ebay.fr"
+    }
+    base_url = BASE_URLS.get(source, "")
+    
+    async def fetch_and_parse(query: str):
+        # We wrap the sensitive API calls with the semaphore
+        async with CONCURRENCY_LIMITER:
+            raw_html = await fetch_html(source, query)
+            if not raw_html:
+                return []
+            
+            clean_text = clean_html_for_llm(raw_html, base_url=base_url)
+            if not clean_text:
+                return []
+            
+            # Small delay before LLM parsing to let the rate limit breather
+            await asyncio.sleep(0.5)
+            return await parse_marketplace_data(clean_text)
+
+    # Process queries with a small staggered delay
+    all_tasks = []
+    for i, q in enumerate(queries):
+        all_tasks.append(fetch_and_parse(q))
+        if i < len(queries) - 1:
+            await asyncio.sleep(1) # stagger task creation
+            
+    results = await asyncio.gather(*all_tasks, return_exceptions=True)
+    
+    for products_list in results:
+        if isinstance(products_list, Exception):
+            print(f"Error processing a query for {source}: {products_list}")
+            continue
+            
         for p in products_list:
             key = p.get('url') or p.get('title')
-            # Deduplication
             if key and key not in seen_urls:
                 seen_urls.add(key)
                 all_products.append(p)
@@ -94,32 +124,45 @@ async def scrape_stream(session_id: str, request: ScrapeStreamRequest):
     MEMORY_STORE[session_id]["search_queries"] = request.final_queries
     final_queries = request.final_queries
     
-    sources = ["Amazon", "Google Shopping", "Reddit"]
+    sources = ["Amazon", "Aliexpress", "eBay"]
     for source in sources:
         MEMORY_STORE[session_id]["products_by_source"][source] = []
 
     async def event_generator():
         # Create coroutines for each source
-        tasks = [
-            asyncio.create_task(process_single_source(source, final_queries))
+        tasks = {
+            asyncio.create_task(process_single_source(source, final_queries)): source
             for source in sources
-        ]
+        }
         
-        # Yield results as soon as each source completes its set of queries
-        for completed_task in asyncio.as_completed(tasks):
-            try:
-                result = await completed_task
-                source_name = result["source"]
-                products = result["products"]
-                
-                MEMORY_STORE[session_id]["products_by_source"][source_name] = products
-                
-                yield f"event: source_ready\n"
-                yield f"data: {json.dumps(result)}\n\n"
-            except Exception as e:
-                # Basic error handling in stream
-                yield f"event: error\n"
-                yield f"data: {json.dumps({'error': str(e)})}\n\n"
+        pending = set(tasks.keys())
+        
+        while pending:
+            # wait for at least one task to complete, with a 15s timeout for keep-alive
+            done, pending = await asyncio.wait(
+                pending, 
+                return_when=asyncio.FIRST_COMPLETED,
+                timeout=15.0
+            )
+            
+            if not done:
+                # Keep-alive comment to prevent proxy timeout
+                yield ": keep-alive\n\n"
+                continue
+
+            for completed_task in done:
+                try:
+                    result = await completed_task
+                    source_name = result["source"]
+                    products = result["products"]
+                    
+                    MEMORY_STORE[session_id]["products_by_source"][source_name] = products
+                    
+                    yield f"event: source_ready\n"
+                    yield f"data: {json.dumps(result)}\n\n"
+                except Exception as e:
+                    yield f"event: error\n"
+                    yield f"data: {json.dumps({'error': str(e)})}\n\n"
             
         yield "event: stream_complete\n"
         yield "data: {}\n\n"
