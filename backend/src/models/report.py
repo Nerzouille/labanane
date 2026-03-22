@@ -11,6 +11,7 @@ class Product(BaseModel):
     rating_range: int    # max rating value, typically 5
     rating_count: int    # total review count
     main_features: list[str] = Field(min_length=3, max_length=3)
+    image_url: str | None = None
 
 
 class TargetPersona(BaseModel):

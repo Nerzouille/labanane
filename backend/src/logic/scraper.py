@@ -29,6 +29,8 @@ def clean_html_for_llm(raw_html: str, base_url: str = "") -> str:
                 from urllib.parse import urljoin
                 href = urljoin(base_url, href)
             a.string = f"{a.get_text(strip=True)} [URL: {href}]"
+    for img in soup.find_all("img", src=True):
+        img.string = f"[IMG: {img['src']}]"
     for tag in soup(["script", "style", "footer", "noscript", "svg"]):
         tag.extract()
     return soup.get_text(separator=" ", strip=True).replace("\xa0", " ")[:MAX_TEXT_LENGTH]
@@ -64,7 +66,8 @@ async def parse_marketplace_data(cleaned_text: str) -> list[dict]:
     Each returned dict MUST contain exactly these keys:
       title (str), price (str), url (str),
       rating_stars (float), rating_range (int), rating_count (int),
-      main_features (list of exactly 3 strings).
+      main_features (list of exactly 3 strings),
+      image_url (str | None): direct URL to the product image from [IMG: ...] markers, or null if not found.
     """
     result = await emulate_async()
     return _coerce_to_list_of_dicts(result)

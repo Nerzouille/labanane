@@ -41,7 +41,7 @@
 
       <Item.Media variant="image" class="size-14 rounded-md">
         {#if p.image_url}
-          <img src={p.image_url} alt={p.title} />
+          <img src={p.image_url} alt={p.title} class="size-full object-contain" />
         {:else}
           <div class="size-full bg-muted flex items-center justify-center rounded-md">
             <HugeiconsIcon icon={ImageNotFoundIcon} class="s-5 text-muted-foreground/50" />
