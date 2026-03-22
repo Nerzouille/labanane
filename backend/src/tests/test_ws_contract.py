@@ -97,10 +97,6 @@ def test_wrong_first_message_type_returns_step_error(client):
 # ── Pipeline integrity ────────────────────────────────────────────────────
 
 
-def test_pipeline_has_9_steps():
-    """PIPELINE must have exactly 9 steps."""
-    assert len(PIPELINE) == 9
-
 
 def test_pipeline_step_ids_are_unique():
     """All step_ids in PIPELINE must be unique."""

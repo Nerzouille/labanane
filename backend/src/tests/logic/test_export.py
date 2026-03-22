@@ -224,3 +224,82 @@ def test_render_pdf_includes_browser_charts_note():
     result = render_pdf(md)
     # The note is in HTML before the markdown body — it should be in the PDF
     assert isinstance(result, bytes)  # just verify it doesn't crash
+
+
+# ── Target Personas section (004-persona-generation) ─────────────────────────
+
+SAMPLE_PERSONAS = [
+    {
+        "name": "The Weekend Creator",
+        "age_range": "25–35",
+        "occupation": "Freelance designer",
+        "motivations": ["Professional look", "Aesthetic tools"],
+        "pain_points": ["Cheap materials", "Wrong sizes"],
+    },
+    {
+        "name": "The Remote Professional",
+        "age_range": "30–45",
+        "occupation": "Software engineer",
+        "motivations": ["Ergonomic surface", "Minimal design"],
+        "pain_points": ["Mouse skip", "Cable mess"],
+    },
+    {
+        "name": "The Student Hustler",
+        "age_range": "18–24",
+        "occupation": "University student",
+        "motivations": ["Gaming aesthetic", "Budget value"],
+        "pain_points": ["Too expensive", "Too large"],
+    },
+]
+
+SAMPLE_RUN_DATA_WITH_PERSONAS = {**SAMPLE_RUN_DATA, "personas": SAMPLE_PERSONAS}
+
+
+def test_render_markdown_includes_target_personas_section_when_personas_present():
+    result = render_markdown(SAMPLE_RUN_DATA_WITH_PERSONAS)
+    assert "## Target Personas" in result
+
+
+def test_render_markdown_target_personas_section_absent_when_personas_empty():
+    run_data_no_personas = {**SAMPLE_RUN_DATA, "personas": []}
+    result = render_markdown(run_data_no_personas)
+    assert "## Target Personas" not in result
+
+
+def test_render_markdown_target_personas_section_absent_when_key_missing():
+    result = render_markdown(SAMPLE_RUN_DATA)
+    assert "## Target Personas" not in result
+
+
+def test_render_markdown_persona_names_appear_in_output():
+    result = render_markdown(SAMPLE_RUN_DATA_WITH_PERSONAS)
+    assert "The Weekend Creator" in result
+    assert "The Remote Professional" in result
+    assert "The Student Hustler" in result
+
+
+def test_render_markdown_persona_sub_sections_are_present():
+    result = render_markdown(SAMPLE_RUN_DATA_WITH_PERSONAS)
+    assert "### Persona 1: The Weekend Creator" in result
+    assert "### Persona 2: The Remote Professional" in result
+    assert "### Persona 3: The Student Hustler" in result
+
+
+def test_render_markdown_persona_age_range_is_present():
+    result = render_markdown(SAMPLE_RUN_DATA_WITH_PERSONAS)
+    assert "**Age range**: 25–35" in result
+
+
+def test_render_markdown_persona_occupation_is_present():
+    result = render_markdown(SAMPLE_RUN_DATA_WITH_PERSONAS)
+    assert "**Occupation**: Freelance designer" in result
+
+
+def test_render_markdown_persona_motivations_are_present():
+    result = render_markdown(SAMPLE_RUN_DATA_WITH_PERSONAS)
+    assert "Professional look" in result
+
+
+def test_render_markdown_persona_pain_points_are_present():
+    result = render_markdown(SAMPLE_RUN_DATA_WITH_PERSONAS)
+    assert "Cheap materials" in result

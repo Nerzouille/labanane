@@ -5,9 +5,6 @@
   import { HugeiconsIcon } from '@hugeicons/svelte';
   import { LinkSquare02Icon, ImageNotFoundIcon, StarIcon } from '@hugeicons/core-free-icons';
   import { fade, blur } from 'svelte/transition';
-  import { tick } from 'svelte';
-  import { Button } from '$lib/components/ui/button';
-  import { Spinner } from '$lib/components/ui/spinner';
 
   function marketplaceLabel(url: string): string {
     try {
@@ -29,7 +26,6 @@
   } = $props();
 
   const products = $derived(data.products ?? []);
-  const isFinal = $derived(data.is_final ?? false);
 
   function parsePrice(priceStr: string): number | null {
     if (!priceStr) return null;
@@ -98,7 +94,7 @@
 
       <Item.Media variant="image" class="size-14 rounded-md">
         {#if p.image_url}
-          <img src={p.image_url} alt={p.title} />
+          <img src={p.image_url} alt={p.title} class="size-full object-contain" />
         {:else}
           <div class="size-full bg-muted flex items-center justify-center rounded-md">
             <HugeiconsIcon icon={ImageNotFoundIcon} class="s-5 text-muted-foreground/50" />

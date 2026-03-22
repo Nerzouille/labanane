@@ -11,6 +11,7 @@ class Product(BaseModel):
     rating_range: int    # max rating value, typically 5
     rating_count: int    # total review count
     main_features: list[str] = Field(min_length=3, max_length=3)
+    image_url: str | None = None
 
 
 class TargetPersona(BaseModel):
@@ -41,6 +42,18 @@ class MarketAnalysis(BaseModel):
     target_persona: TargetPersona
     differentiation_angles: DifferentiationAngles
     competitive_overview: CompetitiveOverview
+
+
+class Persona(BaseModel):
+    name: str                   # archetype label, e.g. "The Weekend Creator"
+    age_range: str              # e.g. "25–35"
+    occupation: str             # e.g. "Freelance graphic designer"
+    motivations: list[str]      # 2–3 items
+    pain_points: list[str]      # 2–3 items
+
+
+class PersonaSet(BaseModel):
+    personas: list[Persona]     # exactly 3
 
 
 class SourceResult(BaseModel):

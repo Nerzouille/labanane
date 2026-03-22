@@ -7,7 +7,10 @@
   import { Alert, AlertDescription } from '$lib/components/ui/alert';
   import { Spinner } from '$lib/components/ui/spinner';
   import ShaderBackground from '$lib/components/ShaderBackground.svelte';
+  import { HugeiconsIcon } from '@hugeicons/svelte';
+  import { ArrowRightIcon } from '@hugeicons/core-free-icons';
   import { fly, slide } from 'svelte/transition';
+  import { tick } from 'svelte';
 
   const WS_URL = 'ws://localhost:8000/ws/workflow';
 
@@ -28,18 +31,7 @@
 
   const HIDDEN_STEPS = new Set(['product_description', 'ai_analysis']);
   const visibleSteps = $derived(
-    workflowState.steps.filter((s) => {
-      if (HIDDEN_STEPS.has(s.step_id)) return false;
-      
-      // Fade out the keywords section AND the confirmation button only once the user actually confirms
-      const confirmStep = workflowState.steps.find((x) => x.step_id === 'keyword_confirmation');
-      const isConfirmed = confirmStep?.status === 'complete';
-      
-      if ((s.step_id === 'keyword_refinement' || s.step_id === 'keyword_confirmation') && isConfirmed) {
-        return false;
-      }
-      return true;
-    })
+    workflowState.steps.filter((s) => !HIDDEN_STEPS.has(s.step_id))
   );
 
   // ── Blend : 0 = dark shader, 1 = vague élargie = blanc ──────────────────
@@ -57,6 +49,22 @@
     }
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
+  });
+
+  // Auto-scroll to new content when near the bottom (chat-like behaviour).
+  // Track length, status, data AND tokens so product batches and streaming also trigger scroll.
+  $effect(() => {
+    const _len = visibleSteps.length;
+    const last = visibleSteps.at(-1);
+    const _status = last?.status;
+    const _data = last?.data;
+    const _tokens = last?.tokens;
+    tick().then(() => {
+      const nearBottom = window.innerHeight + window.scrollY >= document.body.scrollHeight - 100;
+      if (nearBottom) {
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+      }
+    });
   });
 
   function findOrCreateStep(step_id: string): StepState {
@@ -137,6 +145,7 @@
           updateStep(msg.step_id, { status: 'error', error: msg.error, data: { retryable: msg.retryable } });
           if (!msg.retryable) workflowState.errorMsg = msg.error;
         } else if (msg.type === 'workflow_complete') {
+          intentionalClose = true;
           workflowState.runId = msg.run_id;
           workflowState.status = 'closed';
         }
@@ -149,7 +158,13 @@
   function handleStepAction(action: object) {
     conn?.send(action);
     const a = action as { type: string; step_id?: string; confirmed?: boolean };
-    if (a.type === 'confirmation' && a.step_id) updateStep(a.step_id, { status: 'complete' });
+    if (a.type === 'confirmation' && a.step_id) {
+      if (a.confirmed === false) {
+        reset();
+      } else {
+        updateStep(a.step_id, { status: 'complete' });
+      }
+    }
   }
 
   function reset() {
@@ -189,7 +204,10 @@
           spellcheck="false"
         />
         {#if isIdle}
-          <button type="submit" disabled={!workflowState.description.trim()}>Analyser</button>
+          <button type="submit" disabled={!workflowState.description.trim()}>
+            <span class="btn-label">Analyser</span>
+            <span class="btn-icon"><HugeiconsIcon icon={ArrowRightIcon} size={18} color="currentColor" /></span>
+          </button>
         {:else}
           <button type="button" class="reset-btn" onclick={reset}>Nouvelle analyse</button>
         {/if}
@@ -256,6 +274,10 @@
         <div class="mt-6 flex justify-end">
           <button class="reset-btn-bottom" onclick={reset}>Nouvelle analyse</button>
         </div>
+      {:else if workflowState.status === 'open' && visibleSteps.at(-1)?.status === 'complete'}
+        <div class="flex justify-center py-6" in:fly={{ y: 6, duration: 200 }}>
+          <Spinner class="size-5 text-muted-foreground" />
+        </div>
       {/if}
 
     </main>
@@ -292,6 +314,7 @@
   }
   .logo-topleft.visible { opacity: 1; pointer-events: auto; }
   .dark .logo-topleft { color: #fff; }
+
 
   /* ── Float wrapper ── */
   .float-wrapper {
@@ -393,7 +416,11 @@
     white-space: nowrap;
     flex-shrink: 0;
     transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
+  .btn-icon { display: none; align-items: center; justify-content: center; }
   button[type='submit']:disabled { opacity: 0.4; cursor: not-allowed; }
   button[type='submit']:not(:disabled):hover { background: #2563eb; }
   .dark button[type='submit'] { background: #7c3aed; }
@@ -422,10 +449,11 @@
     flex-wrap: wrap;
     justify-content: center;
     overflow: hidden;
-    max-height: 4rem;
+    max-height: 8rem;
     opacity: 1;
     transition: max-height 0.7s ease, opacity 0.35s ease, margin 0.7s ease;
     margin-top: 0;
+    padding: 0 0.25rem;
   }
   .chips.hidden { max-height: 0; opacity: 0; }
 
@@ -492,4 +520,13 @@
     transition: background 0.2s;
   }
   .reset-btn-bottom:hover { background: #2563eb; }
+
+  /* ── Mobile overrides (en dernier pour l'emporter sur les règles de base) ── */
+  @media (max-width: 640px) {
+    .logo-topleft { display: none; }
+    .btn-label { display: none; }
+    .btn-icon { display: flex; }
+    button[type='submit'] { padding: 0.65rem 0.75rem; }
+    input { font-size: 0.85rem; }
+  }
 </style>
