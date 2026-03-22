@@ -9,23 +9,27 @@ from src.logic.scraper import fetch_html, clean_html_for_llm, parse_marketplace_
 if TYPE_CHECKING:
     from ..run import WorkflowRun, StepOutput
 
-SOURCES = ["Amazon", "Google Shopping"]
+SOURCES = ["Amazon", "Aliexpress", "eBay"]
 
 
-async def _scrape_source(source: str, keywords: list[str]) -> list[dict]:
-    """Scrape one source for all keywords, deduplicating by URL."""
-    products: list[dict] = []
-    seen: set[str] = set()
-    for kw in keywords:
-        raw_html = await fetch_html(source, kw)
-        clean_text = clean_html_for_llm(raw_html)
-        items = await parse_marketplace_data(clean_text)
-        for p in items:
-            key = p.get("url") or p.get("title")
-            if key and key not in seen:
-                seen.add(key)
-                products.append(p)
-    return products
+async def _scrape_one(source: str, kw: str) -> list[dict]:
+    """Scrape one source for a single keyword."""
+    BASE_URLS = {
+        "Amazon": "https://www.amazon.fr",
+        "Aliexpress": "https://www.aliexpress.com",
+        "eBay": "https://www.ebay.fr"
+    }
+    base_url = BASE_URLS.get(source, "")
+    
+    raw_html = await fetch_html(source, kw)
+    clean_text = clean_html_for_llm(raw_html, base_url=base_url)
+    items = await parse_marketplace_data(clean_text)
+    
+    for p in items:
+        # Svelte front-end logic: Add source so the UI tag works better (optional but good)
+        p["source"] = source
+        
+    return items
 
 
 class ProductResearchStep(Step):
@@ -56,15 +60,39 @@ class ProductResearchStep(Step):
 
         source_keywords = keywords
 
-        results = await asyncio.gather(
-            *[_scrape_source(source, keywords) for source in SOURCES],
-            return_exceptions=True,
-        )
+        results_tasks = [
+            asyncio.create_task(_scrape_one(source, kw)) 
+            for source in SOURCES
+            for kw in keywords
+        ]
 
         all_products: list[dict] = []
-        for r in results:
-            if isinstance(r, list):
-                all_products.extend(r)
+        seen: set[str] = set()
+        
+        for coro in asyncio.as_completed(results_tasks):
+            try:
+                items = await coro
+                new_products = []
+                for p in items:
+                    key = p.get("url") or p.get("title")
+                    if key and key not in seen:
+                        seen.add(key)
+                        new_products.append(p)
+                        
+                if new_products:
+                    all_products.extend(new_products)
+                    yield StepResultMessage(
+                        step_id=self.step_id,
+                        component_type=self.component_type,
+                        data={
+                            "products": all_products,
+                            "source_keywords": source_keywords,
+                            "is_final": False
+                        },
+                    )
+            except Exception as e:
+                import logging
+                logging.error(f"Error scraping a source/keyword: {e}")
 
         if not all_products:
             yield StepErrorMessage(
@@ -74,8 +102,13 @@ class ProductResearchStep(Step):
             )
             return
 
+        # Final yield to indicate stream is complete
         yield StepResultMessage(
             step_id=self.step_id,
             component_type=self.component_type,
-            data={"products": all_products, "source_keywords": source_keywords},
+            data={
+                "products": all_products,
+                "source_keywords": source_keywords,
+                "is_final": True
+            },
         )

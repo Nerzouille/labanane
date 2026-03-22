@@ -7,7 +7,7 @@
   import { Alert, AlertDescription } from '$lib/components/ui/alert';
   import { Spinner } from '$lib/components/ui/spinner';
   import ShaderBackground from '$lib/components/ShaderBackground.svelte';
-  import { fly } from 'svelte/transition';
+  import { fly, slide } from 'svelte/transition';
 
   const WS_URL = 'ws://localhost:8000/ws/workflow';
 
@@ -28,7 +28,18 @@
 
   const HIDDEN_STEPS = new Set(['product_description', 'ai_analysis']);
   const visibleSteps = $derived(
-    workflowState.steps.filter((s) => !HIDDEN_STEPS.has(s.step_id))
+    workflowState.steps.filter((s) => {
+      if (HIDDEN_STEPS.has(s.step_id)) return false;
+      
+      // Fade out the keywords section AND the confirmation button only once the user actually confirms
+      const confirmStep = workflowState.steps.find((x) => x.step_id === 'keyword_confirmation');
+      const isConfirmed = confirmStep?.status === 'complete';
+      
+      if ((s.step_id === 'keyword_refinement' || s.step_id === 'keyword_confirmation') && isConfirmed) {
+        return false;
+      }
+      return true;
+    })
   );
 
   // ── Blend : 0 = dark shader, 1 = vague élargie = blanc ──────────────────
@@ -206,31 +217,33 @@
 
       <div class="steps-list">
         {#each visibleSteps as step (step.step_id)}
-          {#if (step.status === 'active' || step.status === 'processing') && !step.component_type}
-            <div in:fly={{ y: 10, duration: 300 }}>
-              <StepSkeleton stepId={step.step_id} />
-            </div>
-          {:else if step.component_type && step.status !== 'error'}
-            <div in:fly={{ y: 10, duration: 300 }}>
-              <StepRenderer
-                componentType={step.component_type}
-                data={step.data ?? {}}
-                tokens={step.tokens}
-                stepId={step.step_id}
-                status={step.status}
-                onAction={handleStepAction}
-              />
-            </div>
-          {:else if step.status === 'error'}
-            <div class="step-error-row" in:fly={{ y: 10, duration: 300 }}>
-              <p class="step-error-msg">{step.error}</p>
-              {#if step.data?.retryable}
-                <button class="retry-btn" onclick={() => handleStepAction({ type: 'retry', step_id: step.step_id })}>
-                  Retry
-                </button>
-              {/if}
-            </div>
-          {/if}
+          <div out:slide={{ axis: 'y', duration: 350 }}>
+            {#if (step.status === 'active' || step.status === 'processing') && !step.component_type}
+              <div in:fly={{ y: 10, duration: 300 }}>
+                <StepSkeleton stepId={step.step_id} />
+              </div>
+            {:else if step.component_type && step.status !== 'error'}
+              <div in:fly={{ y: 10, duration: 300 }}>
+                <StepRenderer
+                  componentType={step.component_type}
+                  data={step.data ?? {}}
+                  tokens={step.tokens}
+                  stepId={step.step_id}
+                  status={step.status}
+                  onAction={handleStepAction}
+                />
+              </div>
+            {:else if step.status === 'error'}
+              <div class="step-error-row" in:fly={{ y: 10, duration: 300 }}>
+                <p class="step-error-msg">{step.error}</p>
+                {#if step.data?.retryable}
+                  <button class="retry-btn" onclick={() => handleStepAction({ type: 'retry', step_id: step.step_id })}>
+                    Retry
+                  </button>
+                {/if}
+              </div>
+            {/if}
+          </div>
         {/each}
       </div>
 
