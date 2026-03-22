@@ -27,28 +27,49 @@
       // Base: sombre → blanc
       vec3 color = mix(vec3(0.02, 0.02, 0.06), vec3(1.0, 1.0, 1.0), u_blend);
 
-      // Glows s'estompent
+      // Glows s'estompent — positions animated
       float glowFade = 1.0 - u_blend;
 
-      vec2 d1 = uv - vec2(0.8, 0.2);
+      vec2 g1center = vec2(0.8 + sin(u_time * 0.41) * 0.12, 0.2 + cos(u_time * 0.37) * 0.14);
+      vec2 d1 = uv - g1center;
       color += vec3(0.35, 0.05, 0.7) * exp(-dot(d1,d1) * 2.5) * 1.3 * glowFade;
 
-      vec2 d2 = uv - vec2(0.15, 0.85);
+      vec2 g2center = vec2(0.15 + cos(u_time * 0.29) * 0.10, 0.85 + sin(u_time * 0.33) * 0.12);
+      vec2 d2 = uv - g2center;
       color += vec3(0.05, 0.15, 0.7) * exp(-dot(d2,d2) * 2.0) * 0.9 * glowFade;
 
-      // Vague : s'élargit et blanchit pour remplir l'écran
+      // Third roaming glow
+      vec2 g3center = vec2(0.5 + sin(u_time * 0.19) * 0.3, 0.5 + cos(u_time * 0.23) * 0.28);
+      vec2 d3 = uv - g3center;
+      color += vec3(0.6, 0.05, 0.5) * exp(-dot(d3,d3) * 3.5) * 0.7 * glowFade;
+
+      // Primary wave
       float angle    = 2.618;
       vec2  dir      = vec2(cos(angle), sin(angle));
       vec2  perp     = vec2(-sin(angle), cos(angle));
       float proj     = dot(uv - vec2(0.5), dir);
       float perpProj = dot(uv - vec2(0.5), perp);
-      float wave     = sin(proj * 8.0 - u_time * 0.6) * 0.04;
+      float wave     = sin(proj * 8.0 - u_time * 1.2) * 0.055
+                     + sin(proj * 3.5 - u_time * 0.7) * 0.03;
       float waveDist = perpProj - wave;
 
       float sharpness = mix(7.0, 0.0, u_blend);
       float waveG     = mix(exp(-abs(waveDist) * sharpness), 1.0, u_blend);
+
+      // Secondary wave (cross-diagonal)
+      float angle2    = angle + 1.1;
+      vec2  dir2      = vec2(cos(angle2), sin(angle2));
+      vec2  perp2     = vec2(-sin(angle2), cos(angle2));
+      float proj2     = dot(uv - vec2(0.5), dir2);
+      float perpProj2 = dot(uv - vec2(0.5), perp2);
+      float wave2     = sin(proj2 * 6.0 - u_time * 0.9) * 0.04;
+      float waveDist2 = perpProj2 - wave2;
+      float waveG2    = exp(-abs(waveDist2) * mix(9.0, 0.0, u_blend)) * glowFade;
+
+      // Use max to avoid overbright intersections
+      float waveCombined = max(waveG * 0.7, waveG2 * 0.3);
       vec3  waveColor = mix(vec3(0.99, 0.59, 0.0) * 0.28, vec3(1.0), u_blend);
-      color += waveColor * waveG;
+      color += waveColor * waveCombined;
 
       // Dither
       vec2  px    = floor(gl_FragCoord.xy / 1.5);

@@ -69,19 +69,38 @@ async def parse_marketplace_data(cleaned_text: str) -> list[dict]:
 async def fetch_html(source: str, query: str) -> str:
     """Fetch raw HTML from a marketplace source for the given query.
 
-    Handles rate-limiting with silent retry (up to 2 attempts, randomised delay).
-    In production: uses httpx with browser-like headers.
-    Currently: returns local test HTML for development.
+    Performs up to 2 attempts with a randomised 2–5 s delay on 429/503 responses.
+    Falls back to a minimal mock page if all attempts fail.
     """
-    await asyncio.sleep(1)
-    file_path = os.path.join(
-        os.path.dirname(__file__),
-        "..", "tests", "scraper", "openhosta", "page_01.html"
-    )
-    if not os.path.exists(file_path):
-        return f"<html><body><a href='http://mock_{source}'>{query} Mock Item</a> Price: $9.99</body></html>"
-    with open(file_path, "r", encoding="utf-8") as f:
-        return f.read()
+    import random
+    import httpx
+
+    url = f"https://www.amazon.fr/s?k={query.replace(' ', '+')}"
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/124.0.0.0 Safari/537.36"
+        ),
+        "Accept-Language": "fr-FR,fr;q=0.9,en;q=0.8",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    }
+
+    for attempt in range(2):
+        try:
+            async with httpx.AsyncClient(follow_redirects=True, timeout=15) as client:
+                resp = await client.get(url, headers=headers)
+            if resp.status_code in (429, 503):
+                if attempt == 0:
+                    await asyncio.sleep(random.uniform(2, 5))
+                    continue
+            if resp.status_code == 200:
+                return resp.text
+        except Exception:
+            if attempt == 0:
+                await asyncio.sleep(random.uniform(2, 5))
+
+    return f"<html><body>{query} product listing unavailable</body></html>"
 
 
 async def generate_search_queries(product_description: str) -> list[str]:

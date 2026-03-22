@@ -98,32 +98,47 @@ def test_clean_html_removes_noscript_tags():
 
 
 @pytest.mark.asyncio
-async def test_fetch_html_returns_string():
-    result = await fetch_html("Amazon", "ergonomic desk mat")
-    assert isinstance(result, str)
-    assert len(result) > 0
-
-
-@pytest.mark.asyncio
-async def test_fetch_html_with_mock_file_returns_html():
-    """When the local HTML file exists, fetch_html should return its content."""
+async def test_fetch_html_returns_string_on_200():
+    """fetch_html returns the response body on HTTP 200."""
     fake_html = "<html><body><p>Mock product page</p></body></html>"
-    mock_open = MagicMock(return_value=MagicMock(
-        __enter__=MagicMock(return_value=MagicMock(read=MagicMock(return_value=fake_html))),
-        __exit__=MagicMock(return_value=False),
-    ))
-    with patch("builtins.open", mock_open), patch("os.path.exists", return_value=True):
+    mock_response = MagicMock(status_code=200, text=fake_html)
+    mock_client = AsyncMock()
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=False)
+    mock_client.get = AsyncMock(return_value=mock_response)
+    with patch("httpx.AsyncClient", return_value=mock_client):
         result = await fetch_html("Amazon", "desk mat")
     assert result == fake_html
 
 
 @pytest.mark.asyncio
-async def test_fetch_html_fallback_when_no_file():
-    """When the local HTML file does not exist, fetch_html returns a stub."""
-    with patch("os.path.exists", return_value=False):
+async def test_fetch_html_fallback_on_503():
+    """fetch_html returns a fallback string after two 503 responses."""
+    mock_response = MagicMock(status_code=503, text="")
+    mock_client = AsyncMock()
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=False)
+    mock_client.get = AsyncMock(return_value=mock_response)
+    with patch("httpx.AsyncClient", return_value=mock_client), \
+         patch("asyncio.sleep", AsyncMock()):
         result = await fetch_html("Amazon", "test query")
     assert isinstance(result, str)
-    assert "test query" in result or len(result) > 0
+    assert len(result) > 0
+
+
+@pytest.mark.asyncio
+async def test_fetch_html_retries_once_on_429():
+    """fetch_html retries exactly once on 429 before giving up."""
+    mock_response = MagicMock(status_code=429, text="")
+    mock_client = AsyncMock()
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=False)
+    mock_client.get = AsyncMock(return_value=mock_response)
+    with patch("httpx.AsyncClient", return_value=mock_client), \
+         patch("asyncio.sleep", AsyncMock()):
+        result = await fetch_html("Amazon", "desk mat")
+    assert mock_client.get.call_count == 2  # initial + one retry
+    assert isinstance(result, str)
 
 
 # ── parse_marketplace_data ────────────────────────────────────────────────

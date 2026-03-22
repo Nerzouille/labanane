@@ -22,7 +22,9 @@
   });
 
   let conn: WorkflowConnection | null = null;
-  const isIdle = $derived(workflowState.status === 'idle');
+  let intentionalClose = false;
+  let loopBackStepId = $state('');   // set when engine loops back to a user_input step
+  const isIdle = $derived(workflowState.status === 'idle' || loopBackStepId !== '');
 
   const HIDDEN_STEPS = new Set(['product_description', 'ai_analysis']);
   const visibleSteps = $derived(
@@ -65,17 +67,38 @@
     e.preventDefault();
     if (!workflowState.description.trim()) return;
 
+    // Loop-back: connection is still open, just send user_input
+    if (loopBackStepId) {
+      conn?.send({ type: 'user_input', step_id: loopBackStepId, data: { description: workflowState.description } });
+      loopBackStepId = '';
+      return;
+    }
+
     workflowState.steps = [];
     workflowState.errorMsg = '';
     workflowState.runId = '';
+    intentionalClose = false;
 
     conn = createWorkflowConnection(WS_URL, {
-      onStatusChange(status) { workflowState.status = status; },
+      onStatusChange(status) {
+        workflowState.status = status;
+        if (status === 'closed' && !intentionalClose) {
+          workflowState.errorMsg = 'Connection lost — please start a new analysis.';
+        }
+      },
       onError(err) { workflowState.errorMsg = err; },
       onMessage(msg) {
         if (msg.type === 'workflow_started') {
           workflowState.totalSteps = msg.total_steps;
         } else if (msg.type === 'step_activated') {
+          const existing = workflowState.steps.find(s => s.step_id === msg.step_id);
+          if (existing && existing.status === 'complete') {
+            // Loop-back: step was already completed, engine is re-running it
+            loopBackStepId = msg.step_id;
+            // Remove steps that came after this step (they're being re-done)
+            const idx = workflowState.steps.findIndex(s => s.step_id === msg.step_id);
+            workflowState.steps = workflowState.steps.slice(0, idx);
+          }
           findOrCreateStep(msg.step_id);
           updateStep(msg.step_id, { step_number: msg.step_number, label: msg.label, status: 'active' });
           workflowState.activeStepId = msg.step_id;
@@ -100,8 +123,8 @@
             data: msg.data as Record<string, unknown>,
           });
         } else if (msg.type === 'step_error') {
-          updateStep(msg.step_id, { status: 'error', error: msg.error });
-          workflowState.errorMsg = msg.error;
+          updateStep(msg.step_id, { status: 'error', error: msg.error, data: { retryable: msg.retryable } });
+          if (!msg.retryable) workflowState.errorMsg = msg.error;
         } else if (msg.type === 'workflow_complete') {
           workflowState.runId = msg.run_id;
           workflowState.status = 'closed';
@@ -119,6 +142,8 @@
   }
 
   function reset() {
+    intentionalClose = true;
+    loopBackStepId = '';
     conn?.close();
     conn = null;
     workflowState = { status: 'idle', description: '', totalSteps: 0, steps: [], activeStepId: '', errorMsg: '', runId: '' };
@@ -197,7 +222,14 @@
               />
             </div>
           {:else if step.status === 'error'}
-            <p class="step-error-msg" in:fly={{ y: 10, duration: 300 }}>{step.error}</p>
+            <div class="step-error-row" in:fly={{ y: 10, duration: 300 }}>
+              <p class="step-error-msg">{step.error}</p>
+              {#if step.data?.retryable}
+                <button class="retry-btn" onclick={() => handleStepAction({ type: 'retry', step_id: step.step_id })}>
+                  Retry
+                </button>
+              {/if}
+            </div>
           {/if}
         {/each}
       </div>
@@ -409,7 +441,21 @@
 
   .steps-list { display: flex; flex-direction: column; gap: 2rem; }
 
-  .step-error-msg { font-size: 0.85rem; color: #ef4444; }
+  .step-error-row { display: flex; align-items: center; gap: 0.75rem; }
+  .step-error-msg { font-size: 0.85rem; color: #ef4444; margin: 0; }
+  .retry-btn {
+    font-size: 0.8rem;
+    padding: 0.3rem 0.75rem;
+    border: 1px solid #ef4444;
+    border-radius: 6px;
+    color: #ef4444;
+    background: transparent;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: background 0.15s, color 0.15s;
+  }
+  .retry-btn:hover { background: #ef4444; color: #fff; }
 
   /* ── Complete bar ── */
   .complete-bar {
