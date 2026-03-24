@@ -1,4 +1,3 @@
-<svelte:options runes={true} />
 <script lang="ts">
   import * as Item from "$lib/components/ui/item/index.js";
   import { HugeiconsIcon } from "@hugeicons/svelte";
@@ -20,7 +19,6 @@
   const trendEntries = $derived(
     Object.entries(data.trends ?? {}).filter(([, t]) => t.interest_over_time.length > 0)
   );
-  const activekw = $derived(trendEntries.map(([kw]) => kw));
 </script>
 
 <div class="flex flex-col gap-3">

@@ -1,45 +1,56 @@
-<svelte:options runes={true} />
 <script lang="ts">
   import * as Item from "$lib/components/ui/item/index.js";
   import { HugeiconsIcon } from "@hugeicons/svelte";
   import {
-    Tick02Icon, Cancel01Icon, Alert02Icon,
-    CheckmarkBadge01Icon, InformationCircleIcon,
-    UserIcon, FlashIcon, ChartDecreaseIcon,
+    Tick02Icon,
+    Cancel01Icon,
+    Alert02Icon,
+    CheckmarkBadge01Icon,
+    InformationCircleIcon,
+    UserIcon,
+    FlashIcon,
+    ChartDecreaseIcon,
   } from "@hugeicons/core-free-icons";
   import ViabilityScoreChart from "$lib/components/charts/ViabilityScoreChart.svelte";
   import type { AiAnalysisData } from "$lib/workflow-types";
 
   let { data }: { data: Partial<AiAnalysisData> } = $props();
 
-  const verdict = $derived(data.go_no_go ?? 'conditional');
+  const verdict = $derived(data.go_no_go ?? "conditional");
   const verdictIcon = $derived(
-    verdict === 'go' ? Tick02Icon :
-    verdict === 'no-go' ? Cancel01Icon :
-    Alert02Icon
+    verdict === "go"
+      ? Tick02Icon
+      : verdict === "no-go"
+        ? Cancel01Icon
+        : Alert02Icon,
   );
   const verdictLabel = $derived(
-    verdict === 'go' ? 'Go' : verdict === 'no-go' ? 'No-Go' : 'Conditional'
+    verdict === "go" ? "Go" : verdict === "no-go" ? "No-Go" : "Conditional",
   );
   const verdictIconClass = $derived(
-    verdict === 'go' ? 'text-green-600' :
-    verdict === 'no-go' ? 'text-red-600' :
-    'text-yellow-600'
+    verdict === "go"
+      ? "text-green-600"
+      : verdict === "no-go"
+        ? "text-red-600"
+        : "text-yellow-600",
   );
   const verdictItemClass = $derived(
-    verdict === 'go' ? 'border-green-500/40 bg-green-500/10' :
-    verdict === 'no-go' ? 'border-red-500/40 bg-red-500/10' :
-    'border-yellow-500/40 bg-yellow-500/10'
+    verdict === "go"
+      ? "border-green-500/40 bg-green-500/10"
+      : verdict === "no-go"
+        ? "border-red-500/40 bg-red-500/10"
+        : "border-yellow-500/40 bg-yellow-500/10",
   );
   const verdictTitleClass = $derived(
-    verdict === 'go' ? 'text-green-700' :
-    verdict === 'no-go' ? 'text-red-700' :
-    'text-yellow-700'
+    verdict === "go"
+      ? "text-green-700"
+      : verdict === "no-go"
+        ? "text-red-700"
+        : "text-yellow-700",
   );
 </script>
 
 <div class="flex flex-col gap-3">
-
   <!-- Score chart + verdict -->
   <div class="flex items-stretch gap-3">
     {#if data.viability_score !== undefined}
@@ -70,13 +81,25 @@
     <div class="rounded-lg border bg-card p-3 flex flex-col gap-2">
       <p class="text-xs font-medium text-muted-foreground">Scoring criteria</p>
       {#each data.criteria as c}
-        {@const barColor = c.score >= 70 ? 'bg-green-500' : c.score >= 40 ? 'bg-yellow-500' : 'bg-red-500'}
+        {@const barColor =
+          c.score >= 70
+            ? "bg-green-500"
+            : c.score >= 40
+              ? "bg-yellow-500"
+              : "bg-red-500"}
         <div class="flex items-center gap-2">
-          <span class="text-xs text-muted-foreground w-32 shrink-0 truncate">{c.label}</span>
+          <span class="text-xs text-muted-foreground w-32 shrink-0 truncate"
+            >{c.label}</span
+          >
           <div class="flex-1 h-1.5 rounded-full bg-muted/40">
-            <div class="h-full rounded-full {barColor} transition-all" style="width: {c.score}%"></div>
+            <div
+              class="h-full rounded-full {barColor} transition-all"
+              style="width: {c.score}%"
+            ></div>
           </div>
-          <span class="text-xs font-medium tabular-nums w-8 text-right">{c.score}</span>
+          <span class="text-xs font-medium tabular-nums w-8 text-right"
+            >{c.score}</span
+          >
         </div>
       {/each}
     </div>
@@ -103,7 +126,9 @@
       </Item.Media>
       <Item.Content>
         <Item.Title>Differentiation angles</Item.Title>
-        <Item.Description>{data.differentiation_angles.content}</Item.Description>
+        <Item.Description
+          >{data.differentiation_angles.content}</Item.Description
+        >
       </Item.Content>
     </Item.Root>
   {/if}
@@ -126,7 +151,10 @@
     {#each data.key_opportunities as o}
       <Item.Root variant="default" size="sm">
         <Item.Media>
-          <HugeiconsIcon icon={CheckmarkBadge01Icon} class="s-5 text-green-600" />
+          <HugeiconsIcon
+            icon={CheckmarkBadge01Icon}
+            class="s-5 text-green-600"
+          />
         </Item.Media>
         <Item.Content>
           <Item.Title>{o}</Item.Title>
@@ -140,7 +168,10 @@
     {#each data.key_risks as r}
       <Item.Root variant="default" size="sm">
         <Item.Media>
-          <HugeiconsIcon icon={InformationCircleIcon} class="s-5 text-destructive" />
+          <HugeiconsIcon
+            icon={InformationCircleIcon}
+            class="s-5 text-destructive"
+          />
         </Item.Media>
         <Item.Content>
           <Item.Title>{r}</Item.Title>
@@ -148,5 +179,4 @@
       </Item.Root>
     {/each}
   {/if}
-
 </div>

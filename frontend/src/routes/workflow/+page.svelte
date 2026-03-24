@@ -1,4 +1,3 @@
-<svelte:options runes={true} />
 <script lang="ts">
   import { createWorkflowConnection, type WorkflowConnection } from '$lib/ws';
   import StepRenderer from '$lib/components/StepRenderer.svelte';
@@ -54,11 +53,6 @@
   // Auto-scroll to new content when near the bottom (chat-like behaviour).
   // Track length, status, data AND tokens so product batches and streaming also trigger scroll.
   $effect(() => {
-    const _len = visibleSteps.length;
-    const last = visibleSteps.at(-1);
-    const _status = last?.status;
-    const _data = last?.data;
-    const _tokens = last?.tokens;
     tick().then(() => {
       const nearBottom = window.innerHeight + window.scrollY >= document.body.scrollHeight - 100;
       if (nearBottom) {
@@ -123,13 +117,7 @@
           workflowState.activeStepId = msg.step_id;
         } else if (msg.type === 'step_processing') {
           updateStep(msg.step_id, { status: 'processing' });
-        } else if (msg.type === 'step_streaming_token') {
-          workflowState.steps = workflowState.steps.map((s) =>
-            s.step_id === msg.step_id
-              ? { ...s, tokens: (s.tokens ?? '') + msg.token, status: 'processing' }
-              : s,
-          );
-        } else if (msg.type === 'step_result') {
+        }  else if (msg.type === 'step_result') {
           updateStep(msg.step_id, {
             status: 'complete',
             component_type: msg.component_type,
@@ -182,15 +170,13 @@
 
 <div class="theme" class:dark={isIdle}>
 
-  <!-- Logo top-left -->
   <div class="logo-topleft" class:visible={!isIdle}>Shipper</div>
 
-  <!-- Wrapper centré : barre + hero -->
   <div class="float-wrapper" class:compact={!isIdle}>
 
     <div class="hero-text" class:hidden={!isIdle}>
       <h1 class="brand">Shipper</h1>
-      <p class="tagline">Analysez votre marché en temps réel</p>
+      <p class="tagline">Analysez votre marché en record</p>
     </div>
 
     <form onsubmit={startWorkflow} class="search-form">
@@ -238,14 +224,13 @@
           <div out:slide={{ axis: 'y', duration: 350 }}>
             {#if (step.status === 'active' || step.status === 'processing') && !step.component_type}
               <div in:fly={{ y: 10, duration: 300 }}>
-                <StepSkeleton stepId={step.step_id} />
+                <StepSkeleton/>
               </div>
             {:else if step.component_type && step.status !== 'error'}
               <div in:fly={{ y: 10, duration: 300 }}>
                 <StepRenderer
                   componentType={step.component_type}
                   data={step.data ?? {}}
-                  tokens={step.tokens}
                   stepId={step.step_id}
                   status={step.status}
                   onAction={handleStepAction}
@@ -279,7 +264,6 @@
           <Spinner class="size-5 text-muted-foreground" />
         </div>
       {/if}
-
     </main>
   {/if}
 
@@ -294,11 +278,9 @@
 
   :root { --theme-dur: 0.5s; }
 
-  /* ── Wrapper thème ── */
   .theme { color: #1e293b; }
   .theme.dark { color: #e2e8f0; }
 
-  /* ── Logo top-left ── */
   .logo-topleft {
     position: fixed;
     top: 1.5rem;
@@ -316,7 +298,6 @@
   .dark .logo-topleft { color: #fff; }
 
 
-  /* ── Float wrapper ── */
   .float-wrapper {
     position: fixed;
     z-index: 10;
@@ -498,7 +479,6 @@
   }
   .retry-btn:hover { background: #ef4444; color: #fff; }
 
-  /* ── Complete bar ── */
   .complete-bar {
     margin-top: 3rem;
     padding-top: 1.5rem;
@@ -521,7 +501,6 @@
   }
   .reset-btn-bottom:hover { background: #2563eb; }
 
-  /* ── Mobile overrides (en dernier pour l'emporter sur les règles de base) ── */
   @media (max-width: 640px) {
     .logo-topleft { display: none; }
     .btn-label { display: none; }

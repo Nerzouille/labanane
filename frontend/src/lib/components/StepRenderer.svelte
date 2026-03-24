@@ -10,7 +10,6 @@
   import StepReport from './steps/StepReport.svelte';
   import StepPersona from './steps/StepPersona.svelte';
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const COMPONENTS: Record<string, Component<any>> = {
     keyword_list: StepKeywordList,
     confirmation: StepConfirmation,

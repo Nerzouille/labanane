@@ -1,4 +1,3 @@
-<svelte:options runes={true} />
 <script lang="ts">
   import { Badge } from '$lib/components/ui/badge';
 

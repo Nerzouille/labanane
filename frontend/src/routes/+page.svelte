@@ -1,6 +1,5 @@
-<svelte:options runes={true} />
 <script lang="ts">
-  import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '$lib/components/ui/card';
+  import { Card, CardHeader, CardTitle, CardDescription } from '$lib/components/ui/card';
   import { Badge } from '$lib/components/ui/badge';
 </script>
 

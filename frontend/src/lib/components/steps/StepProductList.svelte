@@ -1,10 +1,9 @@
-<svelte:options runes={true} />
 <script lang="ts">
   import * as Item from '$lib/components/ui/item/index.js';
   import { Badge } from '$lib/components/ui/badge';
   import { HugeiconsIcon } from '@hugeicons/svelte';
   import { LinkSquare02Icon, ImageNotFoundIcon } from '@hugeicons/core-free-icons';
-  import { fade, blur } from 'svelte/transition';
+  import { fade } from 'svelte/transition';
 
   function marketplaceLabel(url: string): string {
     try {

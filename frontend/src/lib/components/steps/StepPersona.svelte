@@ -1,4 +1,3 @@
-<svelte:options runes={true} />
 <script lang="ts">
   import * as Item from "$lib/components/ui/item/index.js";
   import { HugeiconsIcon } from "@hugeicons/svelte";
